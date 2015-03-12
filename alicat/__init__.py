@@ -98,7 +98,7 @@ def command_line():
     parser = argparse.ArgumentParser(description="Control an Alicat mass "
                                      "flow controller from the command line.")
     parser.add_argument("port", nargs="?", default="/dev/ttyUSB0", help="The "
-                        "target serial or USB port.")
+                        "target serial or USB port. Default /dev/ttyUSB0.")
     parser.add_argument("--address", "-a", default="A", type=str, help="The "
                         "device address, A-D. Should only be used if multiple "
                         "flow controllers are connected to one port.")

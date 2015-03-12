@@ -1,32 +1,41 @@
 alicat
 ======
 
-Serial python driver for [Alicat mass flow controllers](http://www.alicat.com/products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+Python driver and command line tool for
+[Alicat mass flow controllers](http://www.alicat.com/products/mass-flow-meters-and-controllers/mass-flow-controllers/).
 
 ![](http://www.alicat.com/wpinstall/wp-content/uploads/2013/12/MCD-266_12001.jpg)
 
 Installation
 ============
 
-#####TODO Make pypi
+```
+pip install alicat
+```
 
-This depends on [pyserial](http://pyserial.sourceforge.net/).
+If you don't like pip, you can also install from source:
+
+```
+git clone https://github.com/numat/alicat.git
+cd alicat
+python setup.py install
+```
 
 Usage
 =====
 
 ###Command Line
 
-For basic tasks, this driver includes a command-line interface with the ability
-to set values and print spreadsheets of data. See the docs for more.
+For basic tasks, this driver includes a command-line interface. Read the help
+for more.
 
 ```
-python alicat.py --help
+alicat --help
 ```
 
 ###Python
 
-For more complex projects, use python to automate your workflow. Basic operation:
+For more complex projects, use python to automate your workflow.
 
 ```python
 from alicat import FlowController
