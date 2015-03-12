@@ -80,6 +80,10 @@ class FlowController(object):
         """
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         self.connection.write(command)
+        line = self.ser.readline()
+        if not line or abs(float(line) - flow) > 0.01:
+            raise Exception("Could not set flow. Is your controller in "
+                            "serial mode?")
 
     def set_gas(self, gas):
         """Sets the gas type.
@@ -93,8 +97,13 @@ class FlowController(object):
         """
         if gas not in self.gases:
             raise Exception("{} not supported!".format(gas))
-        command = "{addr}$${gas}\r\n".format(addr=self.address, gas=gas)
+        command = "{addr}$${gas}\r\n".format(addr=self.address,
+                                             gas=self.gases.index(gas))
         self.connection.write(command)
+        line = self.ser.readline()
+        if not line or line.split()[-1] != gas:
+            raise Exception("Could not set gas type. Is your controller in "
+                            "serial mode?")
 
     def close(self):
         """Closes the serial port. Call this on program termination."""
@@ -132,7 +141,7 @@ def command_line():
     if args.set_gas:
         flow_controller.set_gas(args.set_gas)
     if args.set_flow_rate is not None:
-        flow_controller.set_flow_rate(args.flow_rate)
+        flow_controller.set_flow_rate(args.set_flow_rate)
 
     if args.stream:
         try:

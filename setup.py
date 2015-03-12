@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="alicat",
-    version="0.1.1",
+    version="0.1.2",
     description="Python driver for Alicat mass flow controllers.",
     url="http://github.com/numat/alicat/",
     author="Patrick Fuller",
@@ -12,7 +12,7 @@ setup(
     entry_points={
         "console_scripts": [("alicat = alicat:command_line")]
     },
-    license="GNU GPL v2",
+    license="GPLv2",
     classifiers=[
         "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
         "Development Status :: 4 - Beta",

@@ -4,7 +4,9 @@ alicat
 Python driver and command line tool for
 [Alicat mass flow controllers](http://www.alicat.com/products/mass-flow-meters-and-controllers/mass-flow-controllers/).
 
-![](http://www.alicat.com/wpinstall/wp-content/uploads/2013/12/MCD-266_12001.jpg)
+<p align="center">
+  <img src="http://www.alicat.com/wpinstall/wp-content/uploads/2012/01/gas-mass-flow-controller1.jpg" height="400" />
+</p>
 
 Installation
 ============
