@@ -1,7 +1,7 @@
 alicat
 ======
 
-Python driver and command line tool for
+Serial driver and command line tool for
 [Alicat mass flow controllers](http://www.alicat.com/products/mass-flow-meters-and-controllers/mass-flow-controllers/).
 
 <p align="center">
