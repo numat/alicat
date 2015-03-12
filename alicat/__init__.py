@@ -5,6 +5,7 @@ A Python driver for Alicat mass flow controllers, using serial communication.
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
+import io
 import serial
 
 
@@ -27,6 +28,8 @@ class FlowController(object):
         """
         self.address = address
         self.connection = serial.Serial(port, 19200, timeout=1)
+        bp = io.BufferedRWPair(self.connection, self.connection, 1)
+        self.ser = io.TextIOWrapper(bp, newline="\r", line_buffering=True)
         self.keys = ["pressure", "temperature", "volumetric_flow", "mass_flow",
                      "flow_setpoint", "gas"]
         self.gases = ["Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He",
@@ -35,7 +38,7 @@ class FlowController(object):
                       "C-8", "C-2", "C-75", "A-75", "A-25", "A1025", "Star29",
                       "P-5"]
 
-    def get(self):
+    def get(self, retries=2):
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -47,13 +50,21 @@ class FlowController(object):
          * Total flow (only on models with the optional totalizer function)
          * Currently selected gas
 
+        Args:
+            retries: Number of times to re-attempt reading. Default 2.
         Returns:
             The state of the flow controller, as a dictionary.
         """
         command = "*@={addr}\r\n".format(addr=self.address)
-        self.connection.write(command)
-        line = self.connection.readline().split()
-        address, values = line[0], line[1:]
+        for _ in range(retries+1):
+            self.connection.write(command)
+            line = self.ser.readline()
+            if line:
+                break
+        else:
+            raise Exception("Could not read from flow controller.")
+        spl = line.split()
+        address, values = spl[0], spl[1:]
         if address != self.address:
             raise Exception("Flow controller address mismatch.")
         if len(values) == 7 and len(self.keys) == 6:
