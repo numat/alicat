@@ -15,6 +15,19 @@ This depends on [pyserial](http://pyserial.sourceforge.net/).
 Usage
 =====
 
+###Command Line
+
+For basic tasks, this driver includes a command-line interface with the ability
+to set values and print spreadsheets of data. See the docs for more.
+
+```
+python alicat.py --help
+```
+
+###Python
+
+For more complex projects, use python to automate your workflow. Basic operation:
+
 ```python
 from alicat import FlowController
 flow_controller = FlowController(port="/dev/ttyUSB0")

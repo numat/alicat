@@ -80,9 +80,64 @@ class FlowController(object):
                 "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10", "C-8", "C-2",
                 "C-75", "A-75", "A-25", "A1025", "Star29", "P-5"
         """
+        if gas not in self.gases:
+            raise Exception("{} not supported!".format(gas))
         command = "{addr}$${gas}\r\n".format(addr=self.address, gas=gas)
         self.connection.write(command)
 
     def close(self):
         """Closes the serial port. Call this on program termination."""
         self.connection.close()
+
+
+def command_line():
+    import argparse
+    import json
+    from time import time
+
+    parser = argparse.ArgumentParser(description="Control an Alicat mass "
+                                     "flow controller from the command line.")
+    parser.add_argument("port", nargs="?", default="/dev/ttyUSB0", help="The "
+                        "target serial or USB port.")
+    parser.add_argument("--address", "-a", default="A", type=str, help="The "
+                        "device address, A-D. Should only be used if multiple "
+                        "flow controllers are connected to one port.")
+    parser.add_argument("--set-gas", "-g", default=None, type=str,
+                        help='Sets the gas type. Supported gas types are: '
+                             '"Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", '
+                             '"He", "N2", "N2O", "Ne", "O2", "C3H8", '
+                             '"n-C4H10", "C2H2", "C2H4", "i-C2H10", "Kr", '
+                             '"Xe", "SF6", "C-25", "C-10", "C-8", "C-2", '
+                             '"C-75", "A-75", "A-25", "A1025", "Star29", '
+                             '"P-5"')
+    parser.add_argument("--set-flow-rate", "-f", default=None, type=float,
+                        help="Sets the target flow rate of the controller.")
+    parser.add_argument("--stream", "-s", action="store_true",
+                        help="Sends a constant stream of flow controller "
+                             "data, formatted as a tab-separated table.")
+    args = parser.parse_args()
+
+    flow_controller = FlowController(port=args.port, address=args.address)
+    if args.set_gas:
+        flow_controller.set_gas(args.set_gas)
+    if args.set_flow_rate is not None:
+        flow_controller.set_flow_rate(args.flow_rate)
+
+    if args.stream:
+        try:
+            print("time\t" + "\t".join(flow_controller.keys))
+            t0 = time()
+            while True:
+                print(("{time:.2f}\t{pressure:.2f}\t\t{temperature:.2f}\t\t"
+                       "{volumetric_flow:.2f}\t\t{mass_flow:.2f}\t\t"
+                       "{flow_setpoint:.2f}\t\t{gas}").format(
+                       time=time()-t0, **flow_controller.get()))
+        except KeyboardInterrupt:
+            pass
+    else:
+        print(json.dumps(flow_controller.get(), indent=2, sort_keys=True))
+    flow_controller.close()
+
+
+if __name__ == "__main__":
+    command_line()
