@@ -55,6 +55,7 @@ class FlowController(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
+        self.connection.flush()
         command = "*@={addr}\r\n".format(addr=self.address)
         for _ in range(retries+1):
             self.connection.write(command)
@@ -78,6 +79,7 @@ class FlowController(object):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
+        self.connection.flush()
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         self.connection.write(command)
         line = self.ser.readline()
@@ -97,6 +99,7 @@ class FlowController(object):
         """
         if gas not in self.gases:
             raise Exception("{} not supported!".format(gas))
+        self.connection.flush()
         command = "{addr}$${gas}\r\n".format(addr=self.address,
                                              gas=self.gases.index(gas))
         self.connection.write(command)
@@ -107,6 +110,7 @@ class FlowController(object):
 
     def close(self):
         """Closes the serial port. Call this on program termination."""
+        self.connection.flush()
         self.connection.close()
 
 
