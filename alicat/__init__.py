@@ -83,6 +83,8 @@ class FlowController(object):
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         self.connection.write(command)
         line = self.ser.readline()
+        while line and len(line.split()) > 5:
+            line = self.ser.readline()
         if not line or abs(float(line) - flow) > 0.01:
             raise Exception("Could not set flow. Is your controller in "
                             "serial mode?")
