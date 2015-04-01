@@ -68,7 +68,9 @@ class FlowController(object):
         address, values = spl[0], spl[1:]
         if address != self.address:
             raise Exception("Flow controller address mismatch.")
-        if len(values) == 7 and len(self.keys) == 6:
+        if len(values) == 5 and len(self.keys) == 6:
+            del self.keys[-2]
+        elif len(values) == 7 and len(self.keys) == 6:
             self.keys.insert(5, "total flow")
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
