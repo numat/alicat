@@ -9,15 +9,12 @@ import io
 import serial
 
 
-class FlowController(object):
-    """Python driver for [Alicat Flow Controllers](http://www.alicat.com/
-    products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+class FlowMeter(object):
+    """Python driver for [Alicat Flow Meters](http://www.alicat.com/
+    products/mass-flow-meters-and-controllers/mass-flow-meters/).
 
-    This communicates with the flow controller over a USB or RS-232/RS-485
+    This communicates with the flow meter over a USB or RS-232/RS-485
     connection using pyserial.
-
-    To set up your Alicat flow controller, power on the device and make sure
-    that the "Input" option is set to "Serial".
     """
     def __init__(self, port="/dev/ttyUSB0", address="A"):
         """Connects this driver with the appropriate USB / serial port.
@@ -46,7 +43,7 @@ class FlowController(object):
          * Temperature (normally in C)
          * Volumetric flow (in units specified at time of order)
          * Mass flow (in units specified at time of order)
-         * Flow setpoint
+         * Flow setpoint (only for flow controllers)
          * Total flow (only on models with the optional totalizer function)
          * Currently selected gas
 
@@ -63,11 +60,11 @@ class FlowController(object):
             if line:
                 break
         else:
-            raise Exception("Could not read from flow controller.")
+            raise IOError("Could not read from flow controller.")
         spl = line.split()
         address, values = spl[0], spl[1:]
         if address != self.address:
-            raise Exception("Flow controller address mismatch.")
+            raise ValueError("Flow controller address mismatch.")
         if len(values) == 5 and len(self.keys) == 6:
             del self.keys[-2]
         elif len(values) == 7 and len(self.keys) == 6:
@@ -75,6 +72,42 @@ class FlowController(object):
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
 
+    def set_gas(self, gas):
+        """Sets the gas type.
+
+        Args:
+            gas: The gas type, as a string. Supported gas types are:
+                "Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He", "N2",
+                "N2O", "Ne", "O2", "C3H8", "n-C4H10", "C2H2", "C2H4",
+                "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10", "C-8", "C-2",
+                "C-75", "A-75", "A-25", "A1025", "Star29", "P-5"
+        """
+        if gas not in self.gases:
+            raise ValueError("{} not supported!".format(gas))
+        self.connection.flush()
+        command = "{addr}$${gas}\r\n".format(addr=self.address,
+                                             gas=self.gases.index(gas))
+        self.connection.write(command)
+        line = self.ser.readline()
+        if not line or line.split()[-1] != gas:
+            raise IOError("Could not set gas type")
+
+    def close(self):
+        """Closes the serial port. Call this on program termination."""
+        self.connection.flush()
+        self.connection.close()
+
+
+class FlowController(FlowMeter):
+    """Python driver for [Alicat Flow Controllers](http://www.alicat.com/
+    products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+
+    This communicates with the flow controller over a USB or RS-232/RS-485
+    connection using pyserial.
+
+    To set up your Alicat flow controller, power on the device and make sure
+    that the "Input" option is set to "Serial".
+    """
     def set_flow_rate(self, flow):
         """Sets the target flow rate.
 
@@ -88,34 +121,7 @@ class FlowController(object):
         while line and len(line.split()) > 5:
             line = self.ser.readline()
         if not line or abs(float(line) - flow) > 0.01:
-            raise Exception("Could not set flow. Is your controller in "
-                            "serial mode?")
-
-    def set_gas(self, gas):
-        """Sets the gas type.
-
-        Args:
-            gas: The gas type, as a string. Supported gas types are:
-                "Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He", "N2",
-                "N2O", "Ne", "O2", "C3H8", "n-C4H10", "C2H2", "C2H4",
-                "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10", "C-8", "C-2",
-                "C-75", "A-75", "A-25", "A1025", "Star29", "P-5"
-        """
-        if gas not in self.gases:
-            raise Exception("{} not supported!".format(gas))
-        self.connection.flush()
-        command = "{addr}$${gas}\r\n".format(addr=self.address,
-                                             gas=self.gases.index(gas))
-        self.connection.write(command)
-        line = self.ser.readline()
-        if not line or line.split()[-1] != gas:
-            raise Exception("Could not set gas type. Is your controller in "
-                            "serial mode?")
-
-    def close(self):
-        """Closes the serial port. Call this on program termination."""
-        self.connection.flush()
-        self.connection.close()
+            raise IOError("Could not set flow.")
 
 
 def command_line():
