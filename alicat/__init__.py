@@ -152,24 +152,31 @@ def command_line():
     args = parser.parse_args()
 
     flow_controller = FlowController(port=args.port, address=args.address)
+
+    state = flow_controller.get()
+    is_controller = ("flow_setpoint" in flow_controller.keys)
     if args.set_gas:
         flow_controller.set_gas(args.set_gas)
     if args.set_flow_rate is not None:
-        flow_controller.set_flow_rate(args.set_flow_rate)
+        if is_controller:
+            flow_controller.set_flow_rate(args.set_flow_rate)
+        else:
+            raise TypeError("Cannot set flow on meter.")
 
     if args.stream:
         try:
             print("time\t" + "\t".join(flow_controller.keys))
             t0 = time()
             while True:
-                print(("{time:.2f}\t{pressure:.2f}\t\t{temperature:.2f}\t\t"
-                       "{volumetric_flow:.2f}\t\t{mass_flow:.2f}\t\t"
-                       "{flow_setpoint:.2f}\t\t{gas}").format(
-                       time=time()-t0, **flow_controller.get()))
+                print("{:.2f}\t".format(time() - t0) +
+                      "\t\t".join("{:.2f}".format(state[key])
+                                  for key in flow_controller.keys[:-1]) +
+                      "\t\t" + state["gas"])
+                state = flow_controller.get()
         except KeyboardInterrupt:
             pass
     else:
-        print(json.dumps(flow_controller.get(), indent=2, sort_keys=True))
+        print(json.dumps(state, indent=2, sort_keys=True))
     flow_controller.close()
 
 
