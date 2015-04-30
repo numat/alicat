@@ -91,6 +91,8 @@ class FlowMeter(object):
         line = self.ser.readline()
         if not line or line.split()[-1] != gas:
             raise IOError("Could not set gas type")
+        while line:
+            line = self.ser.readline()
 
     def close(self):
         """Closes the serial port. Call this on program termination."""
@@ -122,6 +124,8 @@ class FlowController(FlowMeter):
             line = self.ser.readline()
         if not line or abs(float(line) - flow) > 0.01:
             raise IOError("Could not set flow.")
+        while line:
+            line = self.ser.readline()
 
 
 def command_line():
@@ -168,11 +172,11 @@ def command_line():
             print("time\t" + "\t".join(flow_controller.keys))
             t0 = time()
             while True:
+                state = flow_controller.get()
                 print("{:.2f}\t".format(time() - t0) +
                       "\t\t".join("{:.2f}".format(state[key])
                                   for key in flow_controller.keys[:-1]) +
                       "\t\t" + state["gas"])
-                state = flow_controller.get()
         except KeyboardInterrupt:
             pass
     else:
