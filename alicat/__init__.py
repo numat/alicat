@@ -6,6 +6,7 @@ Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
 import io
+from time import sleep
 import serial
 
 
@@ -52,15 +53,8 @@ class FlowMeter(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
-        self.connection.flush()
         command = "*@={addr}\r\n".format(addr=self.address)
-        for _ in range(retries+1):
-            self.connection.write(command)
-            line = self.ser.readline()
-            if line:
-                break
-        else:
-            raise IOError("Could not read from flow controller.")
+        line = self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]
         if address != self.address:
@@ -72,7 +66,7 @@ class FlowMeter(object):
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
 
-    def set_gas(self, gas):
+    def set_gas(self, gas, retries=2):
         """Sets the gas type.
 
         Args:
@@ -84,20 +78,35 @@ class FlowMeter(object):
         """
         if gas not in self.gases:
             raise ValueError("{} not supported!".format(gas))
-        self.connection.flush()
         command = "{addr}$${gas}\r\n".format(addr=self.address,
                                              gas=self.gases.index(gas))
-        self.connection.write(command)
-        line = self.ser.readline()
-        if not line or line.split()[-1] != gas:
+        line = self._write_and_read(command, retries)
+        if line.split()[-1] != gas:
             raise IOError("Could not set gas type")
-        while line:
-            line = self.ser.readline()
+
+    def flush(self):
+        """Reads all available information. Use to clear queue."""
+        self.connection.flush()
+        self.connection.flushInput()
+        self.connection.flushOutput()
 
     def close(self):
         """Closes the serial port. Call this on program termination."""
-        self.connection.flush()
+        self.flush()
         self.connection.close()
+
+    def _write_and_read(self, command, retries=2):
+        """Writes a command and reads a response from the flow controller."""
+        self.flush()
+        for _ in range(retries+1):
+            self.connection.write(command)
+            sleep(0.01)
+            line = self.ser.readline()
+            if line:
+                self.flush()
+                return line
+        else:
+            raise IOError("Could not read from flow controller.")
 
 
 class FlowController(FlowMeter):
@@ -110,22 +119,16 @@ class FlowController(FlowMeter):
     To set up your Alicat flow controller, power on the device and make sure
     that the "Input" option is set to "Serial".
     """
-    def set_flow_rate(self, flow):
+    def set_flow_rate(self, flow, retries=2):
         """Sets the target flow rate.
 
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        self.connection.flush()
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
-        self.connection.write(command)
-        line = self.ser.readline()
-        while line and len(line.split()) > 5:
-            line = self.ser.readline()
-        if not line or abs(float(line) - flow) > 0.01:
+        line = self._write_and_read(command, retries)
+        if abs(float(line) - flow) > 0.01:
             raise IOError("Could not set flow.")
-        while line:
-            line = self.ser.readline()
 
 
 def command_line():
