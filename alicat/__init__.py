@@ -5,7 +5,6 @@ A Python driver for Alicat mass flow controllers, using serial communication.
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
-import io
 import re
 from time import sleep
 import serial
@@ -26,9 +25,8 @@ class FlowMeter(object):
             address: The Alicat-specified address, A-Z. Default "A".
         """
         self.address = address
-        self.connection = serial.Serial(port, 19200, timeout=1)
-        bp = io.BufferedRWPair(self.connection, self.connection, 1)
-        self.ser = io.TextIOWrapper(bp, newline="\r", line_buffering=True)
+        self.eol = b"\r"
+        self.connection = serial.Serial(port, 19200, timeout=0.25)
         self.keys = ["pressure", "temperature", "volumetric_flow", "mass_flow",
                      "flow_setpoint", "gas"]
         self.gases = ["Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He",
@@ -105,13 +103,30 @@ class FlowMeter(object):
         self.flush()
         for _ in range(retries+1):
             self.connection.write(command)
-            sleep(0.01)
-            line = self.ser.readline()
+            sleep(0.05)
+            line = self._readline()
             if line:
                 self.flush()
                 return self._separator_regex.sub(r"\1 \2", line)
         else:
             raise IOError("Could not read from flow controller.")
+
+    def _readline(self):
+        """Reads a line using a custom newline character.
+
+        Function from http://stackoverflow.com/questions/16470903/
+        pyserial-2-6-specify-end-of-line-in-readline
+        """
+        line = bytearray()
+        while True:
+            c = self.connection.read(1)
+            if c:
+                line += c
+                if line[-len(self.eol):] == self.eol:
+                    break
+            else:
+                break
+        return line.decode("utf-8").strip()
 
 
 class FlowController(FlowMeter):
