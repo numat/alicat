@@ -102,7 +102,7 @@ class FlowMeter(object):
         """Writes a command and reads a response from the flow controller."""
         self.flush()
         for _ in range(retries+1):
-            self.connection.write(command)
+            self.connection.write(command.encode("utf-8"))
             sleep(0.05)
             line = self._readline()
             if line:
