@@ -8,6 +8,8 @@ Serial driver and command line tool for
   <img src="http://www.alicat.com/wpinstall/wp-content/uploads/2012/01/gas-mass-flow-controller1.jpg" height="400" />
 </p>
 
+###### If you are using Analyt-MTC flow controllers, use [this repository](https://github.com/schlenzmeister/AnalytMTC/wiki) for more info.
+
 Installation
 ============
 
