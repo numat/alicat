@@ -5,7 +5,6 @@ A Python driver for Alicat mass flow controllers, using serial communication.
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
-import re
 from time import sleep
 import serial
 
@@ -34,10 +33,6 @@ class FlowMeter(object):
                       "C2H4", "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10",
                       "C-8", "C-2", "C-75", "A-75", "A-25", "A1025", "Star29",
                       "P-5"]
-        # This regex is used to add spaces in controller output:
-        #     0.0000+1.000 -> 0.0000 +1.000
-        # Still don't know why this happens, or if it's expected behavior.
-        self._separator_regex = re.compile(r"(\d)([\+-])")
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
@@ -105,8 +100,7 @@ class FlowMeter(object):
             self.connection.write(command.encode("utf-8"))
             line = self._readline()
             if line:
-                self.flush()
-                return self._separator_regex.sub(r"\1 \2", line)
+                return line
         else:
             raise IOError("Could not read from flow controller.")
 
