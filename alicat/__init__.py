@@ -103,7 +103,6 @@ class FlowMeter(object):
         self.flush()
         for _ in range(retries+1):
             self.connection.write(command.encode("utf-8"))
-            sleep(0.05)
             line = self._readline()
             if line:
                 self.flush()
