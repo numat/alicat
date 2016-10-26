@@ -25,7 +25,7 @@ class FlowMeter(object):
         """
         self.address = address
         self.eol = b"\r"
-        self.connection = serial.Serial(port, 19200, timeout=0.25)
+        self.connection = serial.Serial(port, 19200, timeout=1.0)
         self.keys = ["pressure", "temperature", "volumetric_flow", "mass_flow",
                      "flow_setpoint", "gas"]
         self.gases = ["Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He",
