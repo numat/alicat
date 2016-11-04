@@ -95,7 +95,6 @@ class FlowMeter(object):
 
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
-        self.flush()
         for _ in range(retries+1):
             self.connection.write(command.encode("utf-8"))
             line = self._readline()
@@ -140,6 +139,8 @@ class FlowController(FlowMeter):
         """
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
+        #The alicat also responds with a line of data, which we should read
+        self._readline()
         if abs(float(line) - flow) > 0.01:
             raise IOError("Could not set flow.")
 
