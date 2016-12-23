@@ -5,7 +5,6 @@ A Python driver for Alicat mass flow controllers, using serial communication.
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
-import re
 from time import sleep
 import serial
 
@@ -26,7 +25,7 @@ class FlowMeter(object):
         """
         self.address = address
         self.eol = b"\r"
-        self.connection = serial.Serial(port, 19200, timeout=0.25)
+        self.connection = serial.Serial(port, 19200, timeout=1.0)
         self.keys = ["pressure", "temperature", "volumetric_flow", "mass_flow",
                      "flow_setpoint", "gas"]
         self.gases = ["Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He",
@@ -34,10 +33,6 @@ class FlowMeter(object):
                       "C2H4", "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10",
                       "C-8", "C-2", "C-75", "A-75", "A-25", "A1025", "Star29",
                       "P-5"]
-        # This regex is used to add spaces in controller output:
-        #     0.0000+1.000 -> 0.0000 +1.000
-        # Still don't know why this happens, or if it's expected behavior.
-        self._separator_regex = re.compile(r"(\d)([\+-])")
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
@@ -100,14 +95,11 @@ class FlowMeter(object):
 
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
-        self.flush()
         for _ in range(retries+1):
             self.connection.write(command.encode("utf-8"))
-            sleep(0.05)
             line = self._readline()
             if line:
-                self.flush()
-                return self._separator_regex.sub(r"\1 \2", line)
+                return line
         else:
             raise IOError("Could not read from flow controller.")
 
@@ -147,6 +139,8 @@ class FlowController(FlowMeter):
         """
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
+        #The alicat also responds with a line of data, which we should read
+        self._readline()
         if abs(float(line) - flow) > 0.01:
             raise IOError("Could not set flow.")
 
