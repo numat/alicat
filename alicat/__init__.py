@@ -5,7 +5,6 @@ A Python driver for Alicat mass flow controllers, using serial communication.
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
 """
-from time import sleep
 import serial
 
 
@@ -33,6 +32,34 @@ class FlowMeter(object):
                       "C2H4", "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10",
                       "C-8", "C-2", "C-75", "A-75", "A-25", "A1025", "Star29",
                       "P-5"]
+
+    @classmethod
+    def is_connected(cls, port, address="A"):
+        """Returns True if the specified port is connected to this device.
+
+        This class can be used to automatically identify ports with connected
+        Alicats. Iterate through all connected interfaces, and use this to
+        test. Ports that come back True should be valid addresses.
+
+        Note that this distinguishes between `FlowController` and `FlowMeter`.
+        """
+        is_device = False
+        try:
+            device = cls(port, address)
+            try:
+                c = device.get()
+                if cls.__name__ == "FlowMeter":
+                    assert c and "flow_setpoint" not in device.keys
+                elif cls.__name__ == "FlowController":
+                    assert c and "flow_setpoint" in device.keys
+                else:
+                    raise NotImplementedError("Must be meter or controller.")
+                is_device = True
+            finally:
+                device.close()
+        except:
+            pass
+        return is_device
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
@@ -139,7 +166,7 @@ class FlowController(FlowMeter):
         """
         command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
-        #The alicat also responds with a line of data, which we should read
+        # The alicat also responds with a line of data, which we should read
         self._readline()
         if abs(float(line) - flow) > 0.01:
             raise IOError("Could not set flow.")
