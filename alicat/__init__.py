@@ -23,7 +23,6 @@ class FlowMeter(object):
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
         self.address = address
-        self.eol = b'\r'
         self.connection = serial.Serial(port, 19200, timeout=1.0)
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
@@ -78,7 +77,7 @@ class FlowMeter(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
-        command = '*@={addr}\r\n'.format(addr=self.address)
+        command = '*@={addr}\r'.format(addr=self.address)
         line = self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]
@@ -103,8 +102,8 @@ class FlowMeter(object):
         """
         if gas not in self.gases:
             raise ValueError("{} not supported!".format(gas))
-        command = '{addr}$${gas}\r\n'.format(addr=self.address,
-                                             gas=self.gases.index(gas))
+        command = '{addr}$${gas}\r'.format(addr=self.address,
+                                           gas=self.gases.index(gas))
         line = self._write_and_read(command, retries)
         if line.split()[-1] != gas:
             raise IOError("Could not set gas type")
@@ -131,7 +130,7 @@ class FlowMeter(object):
             raise IOError("Could not read from flow controller.")
 
     def _readline(self):
-        """Reads a line using a custom newline character.
+        """Reads a line using a custom newline character (CR in this case).
 
         Function from http://stackoverflow.com/questions/16470903/
         pyserial-2-6-specify-end-of-line-in-readline
@@ -141,7 +140,7 @@ class FlowMeter(object):
             c = self.connection.read(1)
             if c:
                 line += c
-                if line[-len(self.eol):] == self.eol:
+                if line[-1] == ord('\r'):
                     break
             else:
                 break
@@ -164,7 +163,7 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        command = '{addr}S{flow:.2f}\r\n'.format(addr=self.address, flow=flow)
+        command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
         # The alicat also responds with a line of data, which we should read
         self._readline()
