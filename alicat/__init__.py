@@ -15,26 +15,26 @@ class FlowMeter(object):
     This communicates with the flow meter over a USB or RS-232/RS-485
     connection using pyserial.
     """
-    def __init__(self, port="/dev/ttyUSB0", address="A"):
+    def __init__(self, port='/dev/ttyUSB0', address='A'):
         """Connects this driver with the appropriate USB / serial port.
 
         Args:
-            port: The serial port. Default "/dev/ttyUSB0".
-            address: The Alicat-specified address, A-Z. Default "A".
+            port: The serial port. Default '/dev/ttyUSB0'.
+            address: The Alicat-specified address, A-Z. Default 'A'.
         """
         self.address = address
-        self.eol = b"\r"
+        self.eol = b'\r'
         self.connection = serial.Serial(port, 19200, timeout=1.0)
-        self.keys = ["pressure", "temperature", "volumetric_flow", "mass_flow",
-                     "flow_setpoint", "gas"]
-        self.gases = ["Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He",
-                      "N2", "N2O", "Ne", "O2", "C3H8", "n-C4H10", "C2H2",
-                      "C2H4", "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10",
-                      "C-8", "C-2", "C-75", "A-75", "A-25", "A1025", "Star29",
-                      "P-5"]
+        self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
+                     'flow_setpoint', 'gas']
+        self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
+                      'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
+                      'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
+                      'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
+                      'P-5']
 
     @classmethod
-    def is_connected(cls, port, address="A"):
+    def is_connected(cls, port, address='A'):
         """Returns True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
@@ -48,12 +48,12 @@ class FlowMeter(object):
             device = cls(port, address)
             try:
                 c = device.get()
-                if cls.__name__ == "FlowMeter":
-                    assert c and "flow_setpoint" not in device.keys
-                elif cls.__name__ == "FlowController":
-                    assert c and "flow_setpoint" in device.keys
+                if cls.__name__ == 'FlowMeter':
+                    assert c and 'flow_setpoint' not in device.keys
+                elif cls.__name__ == 'FlowController':
+                    assert c and 'flow_setpoint' in device.keys
                 else:
-                    raise NotImplementedError("Must be meter or controller.")
+                    raise NotImplementedError('Must be meter or controller.')
                 is_device = True
             finally:
                 device.close()
@@ -78,7 +78,7 @@ class FlowMeter(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
-        command = "*@={addr}\r\n".format(addr=self.address)
+        command = '*@={addr}\r\n'.format(addr=self.address)
         line = self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]
@@ -87,7 +87,7 @@ class FlowMeter(object):
         if len(values) == 5 and len(self.keys) == 6:
             del self.keys[-2]
         elif len(values) == 7 and len(self.keys) == 6:
-            self.keys.insert(5, "total flow")
+            self.keys.insert(5, 'total flow')
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
 
@@ -96,14 +96,14 @@ class FlowMeter(object):
 
         Args:
             gas: The gas type, as a string. Supported gas types are:
-                "Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", "He", "N2",
-                "N2O", "Ne", "O2", "C3H8", "n-C4H10", "C2H2", "C2H4",
-                "i-C2H10", "Kr", "Xe", "SF6", "C-25", "C-10", "C-8", "C-2",
-                "C-75", "A-75", "A-25", "A1025", "Star29", "P-5"
+                'Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He', 'N2',
+                'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2', 'C2H4',
+                'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
+                'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
         """
         if gas not in self.gases:
             raise ValueError("{} not supported!".format(gas))
-        command = "{addr}$${gas}\r\n".format(addr=self.address,
+        command = '{addr}$${gas}\r\n'.format(addr=self.address,
                                              gas=self.gases.index(gas))
         line = self._write_and_read(command, retries)
         if line.split()[-1] != gas:
@@ -123,7 +123,7 @@ class FlowMeter(object):
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
         for _ in range(retries+1):
-            self.connection.write(command.encode("utf-8"))
+            self.connection.write(command.encode('utf-8'))
             line = self._readline()
             if line:
                 return line
@@ -145,7 +145,7 @@ class FlowMeter(object):
                     break
             else:
                 break
-        return line.decode("utf-8").strip()
+        return line.decode('utf-8').strip()
 
 
 class FlowController(FlowMeter):
@@ -164,7 +164,7 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        command = "{addr}S{flow:.2f}\r\n".format(addr=self.address, flow=flow)
+        command = '{addr}S{flow:.2f}\r\n'.format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
         # The alicat also responds with a line of data, which we should read
         self._readline()
@@ -179,22 +179,22 @@ def command_line():
 
     parser = argparse.ArgumentParser(description="Control an Alicat mass "
                                      "flow controller from the command line.")
-    parser.add_argument("port", nargs="?", default="/dev/ttyUSB0", help="The "
+    parser.add_argument('port', nargs='?', default='/dev/ttyUSB0', help="The "
                         "target serial or USB port. Default /dev/ttyUSB0.")
-    parser.add_argument("--address", "-a", default="A", type=str, help="The "
+    parser.add_argument('--address', '-a', default='A', type=str, help="The "
                         "device address, A-D. Should only be used if multiple "
                         "flow controllers are connected to one port.")
-    parser.add_argument("--set-gas", "-g", default=None, type=str,
-                        help='Sets the gas type. Supported gas types are: '
-                             '"Air", "Ar", "CH4", "CO", "CO2", "C2H6", "H2", '
-                             '"He", "N2", "N2O", "Ne", "O2", "C3H8", '
-                             '"n-C4H10", "C2H2", "C2H4", "i-C2H10", "Kr", '
-                             '"Xe", "SF6", "C-25", "C-10", "C-8", "C-2", '
-                             '"C-75", "A-75", "A-25", "A1025", "Star29", '
-                             '"P-5"')
-    parser.add_argument("--set-flow-rate", "-f", default=None, type=float,
+    parser.add_argument('--set-gas', '-g', default=None, type=str,
+                        help="Sets the gas type. Supported gas types are: "
+                             "'Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', "
+                             "'He', 'N2', 'N2O', 'Ne', 'O2', 'C3H8', "
+                             "'n-C4H10', 'C2H2', 'C2H4', 'i-C2H10', 'Kr', "
+                             "'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2', "
+                             "'C-75', 'A-75', 'A-25', 'A1025', 'Star29', "
+                             "'P-5'")
+    parser.add_argument('--set-flow-rate', '-f', default=None, type=float,
                         help="Sets the target flow rate of the controller.")
-    parser.add_argument("--stream", "-s", action="store_true",
+    parser.add_argument('--stream', '-s', action='store_true',
                         help="Sends a constant stream of flow controller "
                              "data, formatted as a tab-separated table.")
     args = parser.parse_args()
@@ -202,7 +202,7 @@ def command_line():
     flow_controller = FlowController(port=args.port, address=args.address)
 
     state = flow_controller.get()
-    is_controller = ("flow_setpoint" in flow_controller.keys)
+    is_controller = ('flow_setpoint' in flow_controller.keys)
     if args.set_gas:
         flow_controller.set_gas(args.set_gas)
     if args.set_flow_rate is not None:
@@ -213,14 +213,14 @@ def command_line():
 
     if args.stream:
         try:
-            print("time\t" + "\t".join(flow_controller.keys))
+            print('time\t' + '\t'.join(flow_controller.keys))
             t0 = time()
             while True:
                 state = flow_controller.get()
-                print("{:.2f}\t".format(time() - t0) +
-                      "\t\t".join("{:.2f}".format(state[key])
+                print('{:.2f}\t'.format(time() - t0) +
+                      '\t\t'.join('{:.2f}'.format(state[key])
                                   for key in flow_controller.keys[:-1]) +
-                      "\t\t" + state["gas"])
+                      '\t\t' + state['gas'])
         except KeyboardInterrupt:
             pass
     else:
@@ -228,5 +228,5 @@ def command_line():
     flow_controller.close()
 
 
-if __name__ == "__main__":
+if __name__ == '__main__':
     command_line()
