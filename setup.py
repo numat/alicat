@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name="alicat",
-    version="0.1.14",
+    version="0.1.15",
     description="Python driver for Alicat mass flow controllers.",
     url="http://github.com/numat/alicat/",
     author="Patrick Fuller",
@@ -18,8 +18,8 @@ setup(
         "Development Status :: 4 - Beta",
         "Natural Language :: English",
         "Programming Language :: Python",
+        "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
         "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)"
     ]

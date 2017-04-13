@@ -165,9 +165,15 @@ class FlowController(FlowMeter):
         """
         command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
-        # The alicat also responds with a line of data, which we should read
-        self._readline()
-        if abs(float(line) - flow) > 0.01:
+
+        # Some Alicat models don't return the setpoint. This accounts for
+        # these devices.
+        try:
+            setpoint = float(line.split()[-2])
+        except IndexError:
+            setpoint = None
+
+        if setpoint is not None and abs(setpoint - flow) > 0.01:
             raise IOError("Could not set flow.")
 
 
@@ -200,7 +206,6 @@ def command_line():
 
     flow_controller = FlowController(port=args.port, address=args.address)
 
-    state = flow_controller.get()
     is_controller = ('flow_setpoint' in flow_controller.keys)
     if args.set_gas:
         flow_controller.set_gas(args.set_gas)
@@ -209,6 +214,7 @@ def command_line():
             flow_controller.set_flow_rate(args.set_flow_rate)
         else:
             raise TypeError("Cannot set flow on meter.")
+    state = flow_controller.get()
 
     if args.stream:
         try:
