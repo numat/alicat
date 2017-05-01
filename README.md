@@ -28,7 +28,7 @@ python setup.py install
 Usage
 =====
 
-###Command Line
+### Command Line
 
 For basic tasks, this driver includes a command-line interface. Read the help
 for more.
@@ -37,13 +37,13 @@ for more.
 alicat --help
 ```
 
-###Python
+### Python
 
 For more complex projects, use python to automate your workflow.
 
 ```python
 from alicat import FlowController
-flow_controller = FlowController(port="/dev/ttyUSB0")
+flow_controller = FlowController(port='/dev/ttyUSB0')
 print(flow_controller.get())
 ```
 
@@ -52,19 +52,19 @@ return a dictionary of the form:
 
 ```python
 {
-  "flow_setpoint": 0.0,  # Mass flow setpoint
-  "gas": "Air",          # Can be any option in `flow_controller.gases`
-  "mass_flow": 0.0,      # Mass flow (in units specified at time of purchase)
-  "pressure": 25.46,     # Pressure (normally in psia)
-  "temperature": 23.62,  # Temperature (normally in C)
-  "total_flow": 0.0,     # Optional. If totalizer function purchased, will be included
-  "volumetric_flow": 0.0 # Volumetric flow (in units specified at time of purchase)
+  'flow_setpoint': 0.0,  # Mass flow setpoint
+  'gas': 'Air',          # Can be any option in `flow_controller.gases`
+  'mass_flow': 0.0,      # Mass flow (in units specified at time of purchase)
+  'pressure': 25.46,     # Pressure (normally in psia)
+  'temperature': 23.62,  # Temperature (normally in C)
+  'total_flow': 0.0,     # Optional. If totalizer function purchased, will be included
+  'volumetric_flow': 0.0 # Volumetric flow (in units specified at time of purchase)
 }
 ```
 
 You can also set the gas type and flow rate.
 
 ```python
-flow_controller.set_gas("N2")
+flow_controller.set_gas('N2')
 flow_controller.set_flow_rate(1.0)
 ```
