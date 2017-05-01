@@ -122,7 +122,7 @@ class FlowMeter(object):
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
         for _ in range(retries+1):
-            self.connection.write(command.encode('utf-8'))
+            self.connection.write(command.encode('ascii'))
             line = self._readline()
             if line:
                 return line
@@ -144,7 +144,7 @@ class FlowMeter(object):
                     break
             else:
                 break
-        return line.decode('utf-8').strip()
+        return line.decode('ascii').strip()
 
 
 class FlowController(FlowMeter):
