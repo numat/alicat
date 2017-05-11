@@ -81,6 +81,12 @@ class FlowMeter(object):
         line = self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]
+
+        # Mass/volume over range error.
+        # Explicitly silenced because I find it redundant.
+        while values[-1] in ['MOV', 'VOV']:
+            del values[-1]
+
         if address != self.address:
             raise ValueError("Flow controller address mismatch.")
         if len(values) == 5 and len(self.keys) == 6:
