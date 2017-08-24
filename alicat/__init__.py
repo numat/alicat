@@ -15,6 +15,13 @@ class FlowMeter(object):
     This communicates with the flow meter over a USB or RS-232/RS-485
     connection using pyserial.
     """
+    
+    """
+    A dictionary that maps port names to a tuple of connection
+    objects and the refcounts
+    """
+    OpenPorts = {}
+    
     def __init__(self, port='/dev/ttyUSB0', address='A'):
         """Connects this driver with the appropriate USB / serial port.
 
@@ -23,7 +30,15 @@ class FlowMeter(object):
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
         self.address = address
-        self.connection = serial.Serial(port, 19200, timeout=1.0)
+        self.port = port
+        
+        if port in FlowMeter.OpenPorts:
+            self.connection, refcount = FlowMeter.OpenPorts[port]
+            FlowMeter.OpenPorts[port] = (self.connection, refcount+1)
+        else:
+            self.connection = serial.Serial(port, 19200, timeout=1.0)
+            FlowMeter.OpenPorts[port] = (self.connection, 1)
+            
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
@@ -31,6 +46,8 @@ class FlowMeter(object):
                       'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
                       'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
                       'P-5']
+        
+        self.open = True
 
     @classmethod
     def is_connected(cls, port, address='A'):
@@ -121,9 +138,20 @@ class FlowMeter(object):
         self.connection.flushOutput()
 
     def close(self):
-        """Closes the serial port. Call this on program termination."""
+        """Closes the serial port if no other FlowController object has
+        a reference to the port. Call this on program termination."""
+        
+        if not self.open:
+            return
+        
         self.flush()
-        self.connection.close()
+        
+        if FlowMeter.OpenPorts[self.port][1] <= 1:
+            self.connection.close()
+            del FlowMeter.OpenPorts[self.port]
+        else:
+            connection, refcount = FlowMeter.OpenPorts[self.port]
+            FlowMeter.OpenPorts[self.port] = (connection, refcount - 1)
 
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
