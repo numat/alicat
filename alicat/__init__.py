@@ -76,6 +76,16 @@ class FlowMeter(object):
         except:
             pass
         return is_device
+    
+    def _test_controller_open(self):
+        """
+        Does nothing if the controller is open and good for read/write
+        otherwise raises an IOError.
+        """
+        if not self.open:
+            raise IOError("The FlowController with address {} and \
+                          port {} is not open".format(self.address, 
+                                                      self.port))
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
@@ -94,6 +104,9 @@ class FlowMeter(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
+        
+        self._test_controller_open()
+        
         command = '*@={addr}\r'.format(addr=self.address)
         line = self._write_and_read(command, retries)
         spl = line.split()
@@ -123,6 +136,8 @@ class FlowMeter(object):
                 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
                 'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
         """
+        self._test_controller_open()
+        
         if gas not in self.gases:
             raise ValueError("{} not supported!".format(gas))
         command = '{addr}$${gas}\r'.format(addr=self.address,
@@ -133,6 +148,8 @@ class FlowMeter(object):
 
     def flush(self):
         """Reads all available information. Use to clear queue."""
+        self._test_controller_open()
+        
         self.connection.flush()
         self.connection.flushInput()
         self.connection.flushOutput()
@@ -140,7 +157,7 @@ class FlowMeter(object):
     def close(self):
         """Closes the serial port if no other FlowController object has
         a reference to the port. Call this on program termination."""
-        
+                
         if not self.open:
             return
         
@@ -152,9 +169,13 @@ class FlowMeter(object):
         else:
             connection, refcount = FlowMeter.OpenPorts[self.port]
             FlowMeter.OpenPorts[self.port] = (connection, refcount - 1)
+        
+        self.open = False
 
     def _write_and_read(self, command, retries=2):
         """Writes a command and reads a response from the flow controller."""
+        self._test_controller_open()
+        
         for _ in range(retries+1):
             self.connection.write(command.encode('ascii'))
             line = self._readline()
@@ -169,6 +190,8 @@ class FlowMeter(object):
         Function from http://stackoverflow.com/questions/16470903/
         pyserial-2-6-specify-end-of-line-in-readline
         """
+        self._test_controller_open()
+        
         line = bytearray()
         while True:
             c = self.connection.read(1)
