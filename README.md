@@ -77,4 +77,7 @@ flow_controller_2 = FlowController(address='B')
 
 flow_controller_1.set_flow_rate(1.0)
 flow_controller_2.set_flow_rate(0.5)
+
+flow_controller_1.close() #/dev/ttyUSB0 is still open!
+flow_controller_2.close()
 ```

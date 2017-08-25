@@ -220,6 +220,9 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
+        
+        self._test_controller_open()
+        
         command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
         line = self._write_and_read(command, retries)
 
