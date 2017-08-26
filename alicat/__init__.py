@@ -16,11 +16,10 @@ class FlowMeter(object):
     connection using pyserial.
     """
     
-    """
-    A dictionary that maps port names to a tuple of connection
-    objects and the refcounts
-    """
-    OpenPorts = {}
+    
+    # A dictionary that maps port names to a tuple of connection
+    # objects and the refcounts
+    open_ports = {}
     
     def __init__(self, port='/dev/ttyUSB0', address='A'):
         """Connects this driver with the appropriate USB / serial port.
@@ -32,12 +31,12 @@ class FlowMeter(object):
         self.address = address
         self.port = port
         
-        if port in FlowMeter.OpenPorts:
-            self.connection, refcount = FlowMeter.OpenPorts[port]
-            FlowMeter.OpenPorts[port] = (self.connection, refcount+1)
+        if port in FlowMeter.open_ports:
+            self.connection, refcount = FlowMeter.open_ports[port]
+            FlowMeter.open_ports[port] = (self.connection, refcount+1)
         else:
             self.connection = serial.Serial(port, 19200, timeout=1.0)
-            FlowMeter.OpenPorts[port] = (self.connection, 1)
+            FlowMeter.open_ports[port] = (self.connection, 1)
             
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
@@ -78,13 +77,15 @@ class FlowMeter(object):
         return is_device
     
     def _test_controller_open(self):
-        """
-        Does nothing if the controller is open and good for read/write
-        otherwise raises an IOError.
+        """Raises an IOError if the FlowMeter has been closed.
+        
+        Does nothing if the meter is open and good for read/write
+        otherwise raises an IOError. This only checks if the meter
+        has been closed by the FlowMeter.close method.
         """
         if not self.open:
             raise IOError("The FlowController with address {} and \
-                          port {} is not open".format(self.address, 
+                          port {} is not open".format(self.address,
                                                       self.port))
 
     def get(self, retries=2):
@@ -155,20 +156,22 @@ class FlowMeter(object):
         self.connection.flushOutput()
 
     def close(self):
-        """Closes the serial port if no other FlowController object has
-        a reference to the port. Call this on program termination."""
-                
+        """Closes the flow meter. Call this on program termination.
+        
+        Also closes the serial port if no other FlowMeter object has
+        a reference to the port."""
+        
         if not self.open:
             return
         
         self.flush()
         
-        if FlowMeter.OpenPorts[self.port][1] <= 1:
+        if FlowMeter.open_ports[self.port][1] <= 1:
             self.connection.close()
-            del FlowMeter.OpenPorts[self.port]
+            del FlowMeter.open_ports[self.port]
         else:
-            connection, refcount = FlowMeter.OpenPorts[self.port]
-            FlowMeter.OpenPorts[self.port] = (connection, refcount - 1)
+            connection, refcount = FlowMeter.open_ports[self.port]
+            FlowMeter.open_ports[self.port] = (connection, refcount - 1)
         
         self.open = False
 
