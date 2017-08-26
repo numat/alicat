@@ -105,7 +105,6 @@ class FlowMeter(object):
         Returns:
             The state of the flow controller, as a dictionary.
         """
-        
         self._test_controller_open()
         
         command = '*@={addr}\r'.format(addr=self.address)
@@ -160,7 +159,6 @@ class FlowMeter(object):
         
         Also closes the serial port if no other FlowMeter object has
         a reference to the port."""
-        
         if not self.open:
             return
         
@@ -223,7 +221,6 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        
         self._test_controller_open()
         
         command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
