@@ -68,3 +68,16 @@ You can also set the gas type and flow rate.
 flow_controller.set_gas('N2')
 flow_controller.set_flow_rate(1.0)
 ```
+
+You can have multiple controllers on the same port.
+
+```python
+flow_controller_1 = FlowController(address='A')
+flow_controller_2 = FlowController(address='B')
+
+flow_controller_1.set_flow_rate(1.0)
+flow_controller_2.set_flow_rate(0.5)
+
+flow_controller_1.close() #/dev/ttyUSB0 is still open!
+flow_controller_2.close()
+```
