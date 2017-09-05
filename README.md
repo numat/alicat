@@ -10,6 +10,18 @@ Serial driver and command line tool for
 
 ###### If you are using Analyt-MTC flow controllers, go to [this repository](https://github.com/schlenzmeister/AnalytMTC/wiki) for more info.
 
+Example Connections
+===================
+
+ * The standard [DB9 cable](http://www.alicat.com/wpinstall/wp-content/uploads/2013/07/MD8DB9.jpg) connected directly to a computer (unix: `/dev/ttyS0`, windows: `COM1`).
+   * Good with older computers that still have the connector.
+ * The cable connected to a computer through a [USB converter](https://www.amazon.com/gp/product/B0007T27H8) (unix: `/dev/ttyUSB0`, windows: `COM1`).
+   * Good for newer computers and maker boards such as Raspberry Pis.
+ * Cables routed through a [TCP device server](https://www.amazon.com/gp/product/B00I5EYB2Q) (`tcp://192.168.1.100:4000`, requires python >3.4).
+    * Good in conjunction with PLCs for professional-looking control boxes.
+ * Multiple cables connected to one port via a [splitter](https://www.amazon.com/gp/product/B007F2E188) and Alicat's addressing (`A`-`D`).
+    * Good when number of ports is limited.
+
 Installation
 ============
 
@@ -24,6 +36,7 @@ git clone https://github.com/numat/alicat.git
 cd alicat
 python setup.py install
 ```
+
 
 Usage
 =====
@@ -69,7 +82,10 @@ flow_controller.set_gas('N2')
 flow_controller.set_flow_rate(1.0)
 ```
 
-You can have multiple controllers on the same port.
+### Alicat Addressing
+
+You can have multiple controllers on the same port by using Alicat's `A`-`D` addresses
+and an [RS-232 splitter](https://www.amazon.com/gp/product/B007F2E188).
 
 ```python
 flow_controller_1 = FlowController(address='A')
@@ -80,4 +96,24 @@ flow_controller_2.set_flow_rate(0.5)
 
 flow_controller_1.close() #/dev/ttyUSB0 is still open!
 flow_controller_2.close()
+```
+
+### Asynchronous TCP
+
+Some people wire their RS-232 devices through an ethernet proxy server ([example](https://www.amazon.com/gp/product/B00I5EYB2Q)), enabling network
+access. This is supported through asyncio (python >3.4) and python's built-in
+asynchronous syntax.
+
+```python
+import asyncio
+from alicat.async import FlowController
+
+flow_controller = FlowController('192.168.1.100', 4000)
+
+async def print_state():
+    print(await flow_controller.get())
+
+ioloop = asyncio.get_event_loop()
+ioloop.run_until_complete(print_state())
+ioloop.close()
 ```
