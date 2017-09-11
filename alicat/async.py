@@ -10,6 +10,8 @@ try:
 except ImportError:
     raise ImportError("TCP connections require python >=3.5.")
 
+import logging
+
 
 class FlowMeter(object):
     """Python driver for [Alicat Flow Meters](http://www.alicat.com/
@@ -46,7 +48,7 @@ class FlowMeter(object):
         self.connection = {'reader': reader, 'writer': writer}
         self.open = True
 
-    async def get(self, retries=2):
+    async def get(self):
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -64,7 +66,7 @@ class FlowMeter(object):
             The state of the flow controller, as a dictionary.
         """
         command = '*@={addr}\r'.format(addr=self.address)
-        line = await self._write_and_read(command, retries)
+        line = await self._write_and_read(command)
         spl = line.split()
         address, values = spl[0], spl[1:]
 
@@ -82,7 +84,7 @@ class FlowMeter(object):
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
 
-    async def set_gas(self, gas, retries=2):
+    async def set_gas(self, gas):
         """Sets the gas type.
 
         Args:
@@ -96,7 +98,7 @@ class FlowMeter(object):
             raise ValueError("{} not supported!".format(gas))
         command = '{addr}$${gas}\r'.format(addr=self.address,
                                            gas=self.gases.index(gas))
-        line = await self._write_and_read(command, retries)
+        line = await self._write_and_read(command)
         if line.split()[-1] != gas:
             raise IOError("Could not set gas type")
 
@@ -106,17 +108,21 @@ class FlowMeter(object):
             self.connection['writer'].close()
         self.open = False
 
-    async def _write_and_read(self, command, retries=2):
+    async def _write_and_read(self, command):
         """Writes a command and reads a response from the flow controller."""
-        if not self.open:
-            await self._connect()
-        self.connection['writer'].write(command.encode())
-        line = await self.connection['reader'].readuntil(b'\r')
-        if line:
+        try:
+            if not self.open:
+                await self._connect()
+            self.connection['writer'].write(command.encode())
+            line = await self.connection['reader'].readuntil(b'\r')
+            assert line
             return line.decode().strip()
-        else:
-            await self._connect()
-            await self._write_and_read(command, retries - 1)
+        except Exception as e:
+            if self.open:
+                logging.error('Lost communication with {}:{}\n{}'.format(
+                              self.ip, self.port, e))
+                self.close()
+            return None
 
 
 class FlowController(FlowMeter):
