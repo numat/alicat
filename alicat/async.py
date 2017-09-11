@@ -67,22 +67,25 @@ class FlowMeter(object):
         """
         command = '*@={addr}\r'.format(addr=self.address)
         line = await self._write_and_read(command)
-        spl = line.split()
-        address, values = spl[0], spl[1:]
+        if line:
+            spl = line.split()
+            address, values = spl[0], spl[1:]
 
-        # Mass/volume over range error.
-        # Explicitly silenced because I find it redundant.
-        while values[-1] in ['MOV', 'VOV']:
-            del values[-1]
+            # Mass/volume over range error.
+            # Explicitly silenced because I find it redundant.
+            while values[-1] in ['MOV', 'VOV']:
+                del values[-1]
 
-        if address != self.address:
-            raise ValueError("Flow controller address mismatch.")
-        if len(values) == 5 and len(self.keys) == 6:
-            del self.keys[-2]
-        elif len(values) == 7 and len(self.keys) == 6:
-            self.keys.insert(5, 'total flow')
-        return {k: (v if k == self.keys[-1] else float(v))
-                for k, v in zip(self.keys, values)}
+            if address != self.address:
+                raise ValueError("Flow controller address mismatch.")
+            if len(values) == 5 and len(self.keys) == 6:
+                del self.keys[-2]
+            elif len(values) == 7 and len(self.keys) == 6:
+                self.keys.insert(5, 'total flow')
+            return {k: (v if k == self.keys[-1] else float(v))
+                    for k, v in zip(self.keys, values)}
+        else:
+            return None
 
     async def set_gas(self, gas):
         """Sets the gas type.
