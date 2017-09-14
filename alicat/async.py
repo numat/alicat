@@ -33,6 +33,7 @@ class FlowMeter(object):
         self.port = port
         self.address = address
         self.open = False
+        self.waiting = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
@@ -113,19 +114,24 @@ class FlowMeter(object):
 
     async def _write_and_read(self, command):
         """Writes a command and reads a response from the flow controller."""
+        if self.waiting:
+            return None
+        self.waiting = True
         try:
             if not self.open:
                 await self._connect()
             self.connection['writer'].write(command.encode())
             line = await self.connection['reader'].readuntil(b'\r')
             assert line
-            return line.decode().strip()
+            result = line.decode().strip()
         except Exception as e:
             if self.open:
                 logging.error('Lost communication with {}:{}\n{}'.format(
                               self.ip, self.port, e))
                 self.close()
-            return None
+            result = None
+        self.waiting = False
+        return result
 
 
 class FlowController(FlowMeter):
