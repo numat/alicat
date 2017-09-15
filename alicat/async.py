@@ -121,7 +121,8 @@ class FlowMeter(object):
             if not self.open:
                 await self._connect()
             self.connection['writer'].write(command.encode())
-            line = await self.connection['reader'].readuntil(b'\r')
+            future = self.connection['reader'].readuntil(b'\r')
+            line = await asyncio.wait_for(future, timeout=0.5)
             assert line
             result = line.decode().strip()
         except Exception as e:
