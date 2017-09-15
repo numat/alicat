@@ -33,6 +33,8 @@ class FlowMeter(object):
         self.port = port
         self.address = address
         self.open = False
+        self.reconnecting = False
+        self.error = False
         self.waiting = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
@@ -113,23 +115,38 @@ class FlowMeter(object):
         self.open = False
 
     async def _write_and_read(self, command):
-        """Writes a command and reads a response from the flow controller."""
+        """Writes a command and reads a response from the flow controller.
+
+        There are two fail points here: 1. communication between this driver
+        and the proxy, and 2. communication between the proxy and the Alicat.
+        We need to separately check for and manage each.
+        """
         if self.waiting:
             return None
         self.waiting = True
+
         try:
             if not self.open:
-                await self._connect()
+                await asyncio.wait_for(self._connect(), timeout=0.5)
+            self.reconnecting = False
+        except asyncio.TimeoutError:
+            if not self.reconnecting:
+                logging.error('Connecting to {}:{} timed out.'.format(
+                              self.ip, self.port))
+            self.reconnecting = True
+            return None
+
+        try:
             self.connection['writer'].write(command.encode())
             future = self.connection['reader'].readuntil(b'\r')
             line = await asyncio.wait_for(future, timeout=0.5)
-            assert line
             result = line.decode().strip()
-        except Exception as e:
-            if self.open:
-                logging.error('Lost communication with {}:{}\n{}'.format(
-                              self.ip, self.port, e))
-                self.close()
+            self.error = False
+        except asyncio.TimeoutError:
+            if not self.error:
+                logging.error('Reading Alicat from {}:{} timed out.'.format(
+                              self.ip, self.port))
+            self.error = True
             result = None
         self.waiting = False
         return result
