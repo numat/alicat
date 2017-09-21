@@ -169,7 +169,7 @@ class FlowController(FlowMeter):
             flow: The target flow rate, in units specified at time of purchase
         """
         command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
-        line = await self._write_and_read(command, retries)
+        line = await self._write_and_read(command)
 
         # Some Alicat models don't return the setpoint. This accounts for
         # these devices.
