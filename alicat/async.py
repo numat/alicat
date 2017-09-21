@@ -175,7 +175,7 @@ class FlowController(FlowMeter):
         # these devices.
         try:
             setpoint = float(line.split()[-2])
-        except IndexError:
+        except (IndexError, AttributeError) as e:
             setpoint = None
 
         if setpoint is not None and abs(setpoint - flow) > 0.01:
