@@ -34,7 +34,8 @@ class FlowMeter(object):
         self.address = address
         self.open = False
         self.reconnecting = False
-        self.error = False
+        self.timeouts = 0
+        self.max_timeouts = 10
         self.waiting = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'flow_setpoint', 'gas']
@@ -139,14 +140,14 @@ class FlowMeter(object):
         try:
             self.connection['writer'].write(command.encode())
             future = self.connection['reader'].readuntil(b'\r')
-            line = await asyncio.wait_for(future, timeout=0.5)
+            line = await asyncio.wait_for(future, timeout=0.9)
             result = line.decode().strip()
-            self.error = False
+            self.timeouts = 0
         except asyncio.TimeoutError:
-            if not self.error:
-                logging.error('Reading Alicat from {}:{} timed out.'.format(
-                              self.ip, self.port))
-            self.error = True
+            self.timeouts += 1
+            if self.timeouts == self.max_timeouts:
+                logging.error('Reading Alicat from {}:{} timed out {} times.'
+                              .format(self.ip, self.port, self.max_timeouts))
             result = None
         self.waiting = False
         return result
