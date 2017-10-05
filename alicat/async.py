@@ -136,6 +136,10 @@ class FlowMeter(object):
                               self.ip, self.port))
             self.reconnecting = True
             return None
+        except Exception as e:
+            logging.warning('Failed to connect: %s'.format(e))
+            self.close()
+            return None
 
         try:
             self.connection['writer'].write(command.encode())
@@ -148,6 +152,10 @@ class FlowMeter(object):
             if self.timeouts == self.max_timeouts:
                 logging.error('Reading Alicat from {}:{} timed out {} times.'
                               .format(self.ip, self.port, self.max_timeouts))
+            result = None
+        except Exception as e:
+            logging.warning('Failed to connect: %s'.format(e))
+            self.close()
             result = None
         self.waiting = False
         return result
