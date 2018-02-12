@@ -146,7 +146,7 @@ class FlowMeter(object):
         try:
             self.connection['writer'].write(command.encode())
             future = self.connection['reader'].readuntil(b'\r')
-            line = await asyncio.wait_for(future, timeout=0.9)
+            line = await asyncio.wait_for(future, timeout=0.25)
             result = line.decode().strip()
             self.timeouts = 0
         except asyncio.TimeoutError:
