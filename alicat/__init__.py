@@ -1,6 +1,4 @@
-#!/usr/bin/python
-"""
-A Python driver for Alicat mass flow controllers.
+"""Python driver for Alicat mass flow controllers.
 
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
@@ -9,6 +7,7 @@ from alicat.serial import FlowMeter, FlowController  # noqa
 
 
 def command_line():
+    """CLI interface, accessible when installed through pip."""
     import argparse
     import sys
 

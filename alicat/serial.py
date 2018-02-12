@@ -1,6 +1,4 @@
-#!/usr/bin/python
-"""
-A Python driver for Alicat mass flow controllers, using serial communication.
+"""Python driver for Alicat mass flow controllers, using serial communication.
 
 Distributed under the GNU General Public License v2
 Copyright (C) 2015 NuMat Technologies
@@ -12,18 +10,21 @@ except ImportError:
 
 
 class FlowMeter(object):
-    """Python driver for [Alicat Flow Meters](http://www.alicat.com/
+    """Python driver for Alicat Flow Meters.
+
+    [Reference](http://www.alicat.com/
     products/mass-flow-meters-and-controllers/mass-flow-meters/).
 
     This communicates with the flow meter over a USB or RS-232/RS-485
     connection using pyserial.
     """
+
     # A dictionary that maps port names to a tuple of connection
     # objects and the refcounts
     open_ports = {}
 
     def __init__(self, port='/dev/ttyUSB0', address='A'):
-        """Connects this driver with the appropriate USB / serial port.
+        """Connect this driver with the appropriate USB / serial port.
 
         Args:
             port: The serial port. Default '/dev/ttyUSB0'.
@@ -51,7 +52,7 @@ class FlowMeter(object):
 
     @classmethod
     def is_connected(cls, port, address='A'):
-        """Returns True if the specified port is connected to this device.
+        """Return True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
         Alicats. Iterate through all connected interfaces, and use this to
@@ -73,12 +74,12 @@ class FlowMeter(object):
                 is_device = True
             finally:
                 device.close()
-        except:
+        except Exception:
             pass
         return is_device
 
     def _test_controller_open(self):
-        """Raises an IOError if the FlowMeter has been closed.
+        """Raise an IOError if the FlowMeter has been closed.
 
         Does nothing if the meter is open and good for read/write
         otherwise raises an IOError. This only checks if the meter
@@ -105,6 +106,7 @@ class FlowMeter(object):
             retries: Number of times to re-attempt reading. Default 2.
         Returns:
             The state of the flow controller, as a dictionary.
+
         """
         self._test_controller_open()
 
@@ -128,7 +130,7 @@ class FlowMeter(object):
                 for k, v in zip(self.keys, values)}
 
     def set_gas(self, gas, retries=2):
-        """Sets the gas type.
+        """Set the gas type.
 
         Args:
             gas: The gas type, as a string. Supported gas types are:
@@ -148,7 +150,7 @@ class FlowMeter(object):
             raise IOError("Could not set gas type")
 
     def flush(self):
-        """Reads all available information. Use to clear queue."""
+        """Read all available information. Use to clear queue."""
         self._test_controller_open()
 
         self.connection.flush()
@@ -156,7 +158,7 @@ class FlowMeter(object):
         self.connection.flushOutput()
 
     def close(self):
-        """Closes the flow meter. Call this on program termination.
+        """Close the flow meter. Call this on program termination.
 
         Also closes the serial port if no other FlowMeter object has
         a reference to the port.
@@ -176,7 +178,7 @@ class FlowMeter(object):
         self.open = False
 
     def _write_and_read(self, command, retries=2):
-        """Writes a command and reads a response from the flow controller."""
+        """Write a command and reads a response from the flow controller."""
         self._test_controller_open()
 
         for _ in range(retries+1):
@@ -188,7 +190,7 @@ class FlowMeter(object):
             raise IOError("Could not read from flow controller.")
 
     def _readline(self):
-        """Reads a line using a custom newline character (CR in this case).
+        """Read a line using a custom newline character (CR in this case).
 
         Function from http://stackoverflow.com/questions/16470903/
         pyserial-2-6-specify-end-of-line-in-readline
@@ -208,17 +210,21 @@ class FlowMeter(object):
 
 
 class FlowController(FlowMeter):
-    """Python driver for [Alicat Flow Controllers](http://www.alicat.com/
-    products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+    """Python driver for Alicat Flow Controllers.
+
+    [Reference](http://www.alicat.com/products/mass-flow-meters-and-
+    controllers/mass-flow-controllers/).
 
     This communicates with the flow controller over a USB or RS-232/RS-485
     connection using pyserial.
 
     To set up your Alicat flow controller, power on the device and make sure
     that the "Input" option is set to "Serial".
+
     """
+
     def set_flow_rate(self, flow, retries=2):
-        """Sets the target flow rate.
+        """Set the target flow rate.
 
         Args:
             flow: The target flow rate, in units specified at time of purchase
@@ -240,6 +246,7 @@ class FlowController(FlowMeter):
 
 
 def command_line(args):
+    """CLI interface, accessible when installed through pip."""
     import json
     from time import time
 

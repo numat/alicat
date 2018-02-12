@@ -1,6 +1,4 @@
-"""
-A Python driver for Alicat mass flow controllers, using asynchronous TCP
-communication.
+"""Python driver for Alicat mass flow controllers, using asynchronous TCP.
 
 Distributed under the GNU General Public License v2
 Copyright (C) 2017 NuMat Technologies
@@ -14,15 +12,18 @@ import logging
 
 
 class FlowMeter(object):
-    """Python driver for [Alicat Flow Meters](http://www.alicat.com/
-    products/mass-flow-meters-and-controllers/mass-flow-meters/).
+    """Python driver for Alicat Flow Meters.
+
+    [Reference](http://www.alicat.com/products/mass-flow-meters-and-
+    controllers/mass-flow-meters/).
 
     This communicates with the flow meter over a TCP bridge such as the
     [StarTech Device Server](https://www.startech.com/Networking-IO/
     Serial-over-IP/4-Port-Serial-Ethernet-Device-Server-with-PoE~NETRS42348PD).
     """
+
     def __init__(self, ip, port, address='A'):
-        """Initializes the device client.
+        """Initialize the device client.
 
         Args:
             ip: IP address of the device server
@@ -46,7 +47,7 @@ class FlowMeter(object):
                       'P-5']
 
     async def _connect(self):
-        """Asynchronously opens a TCP connection with the server."""
+        """Asynchronously open a TCP connection with the server."""
         self.open = False
         reader, writer = await asyncio.open_connection(self.ip, self.port)
         self.connection = {'reader': reader, 'writer': writer}
@@ -68,6 +69,7 @@ class FlowMeter(object):
             retries: Number of times to re-attempt reading. Default 2.
         Returns:
             The state of the flow controller, as a dictionary.
+
         """
         command = '*@={addr}\r'.format(addr=self.address)
         line = await self._write_and_read(command)
@@ -92,7 +94,7 @@ class FlowMeter(object):
             return None
 
     async def set_gas(self, gas):
-        """Sets the gas type.
+        """Set the gas type.
 
         Args:
             gas: The gas type, as a string. Supported gas types are:
@@ -110,13 +112,13 @@ class FlowMeter(object):
             raise IOError("Could not set gas type")
 
     def close(self):
-        """Closes the device server connection."""
+        """Close the device server connection."""
         if self.open:
             self.connection['writer'].close()
         self.open = False
 
     async def _write_and_read(self, command):
-        """Writes a command and reads a response from the flow controller.
+        """Write a command and reads a response from the flow controller.
 
         There are two fail points here: 1. communication between this driver
         and the proxy, and 2. communication between the proxy and the Alicat.
@@ -162,8 +164,10 @@ class FlowMeter(object):
 
 
 class FlowController(FlowMeter):
-    """Python driver for [Alicat Flow Controllers](http://www.alicat.com/
-    products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+    """Python driver for Alicat Flow Controllers.
+
+    [Reference](http://www.alicat.com/products/mass-flow-meters-and-
+    controllers/mass-flow-controllers/).
 
     This communicates with the flow controller over a USB or RS-232/RS-485
     connection using pyserial.
@@ -171,8 +175,9 @@ class FlowController(FlowMeter):
     To set up your Alicat flow controller, power on the device and make sure
     that the "Input" option is set to "Serial".
     """
+
     async def set_flow_rate(self, flow, retries=2):
-        """Sets the target flow rate.
+        """Set the target flow rate.
 
         Args:
             flow: The target flow rate, in units specified at time of purchase
@@ -192,6 +197,7 @@ class FlowController(FlowMeter):
 
 
 def command_line(args):
+    """CLI interface, accessible when installed through pip."""
     import json
     from time import time
 
