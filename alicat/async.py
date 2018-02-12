@@ -128,7 +128,7 @@ class FlowMeter(object):
 
         try:
             if not self.open:
-                await asyncio.wait_for(self._connect(), timeout=0.5)
+                await asyncio.wait_for(self._connect(), timeout=0.25)
             self.reconnecting = False
         except asyncio.TimeoutError:
             if not self.reconnecting:
@@ -137,7 +137,7 @@ class FlowMeter(object):
             self.reconnecting = True
             return None
         except Exception as e:
-            logging.warning('Failed to connect: %s'.format(e))
+            logging.warning('Failed to connect: {}'.format(e))
             self.close()
             return None
 
@@ -154,7 +154,7 @@ class FlowMeter(object):
                               .format(self.ip, self.port, self.max_timeouts))
             result = None
         except Exception as e:
-            logging.warning('Failed to connect: %s'.format(e))
+            logging.warning('Failed to connect: {}'.format(e))
             self.close()
             result = None
         self.waiting = False
