@@ -64,8 +64,6 @@ class FlowMeter(object):
          * Total flow (only on models with the optional totalizer function)
          * Currently selected gas
 
-        Args:
-            retries: Number of times to re-attempt reading. Default 2.
         Returns:
             The state of the flow controller, as a dictionary.
 
@@ -191,7 +189,7 @@ class FlowController(FlowMeter):
         self.control_point = 'flow'
         asyncio.ensure_future(f())
 
-    async def get(self, retries=2):
+    async def get(self):
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -204,13 +202,11 @@ class FlowController(FlowMeter):
          * Total flow (only on models with the optional totalizer function)
          * Currently selected gas
 
-        Args:
-            retries: Number of times to re-attempt reading. Default 2.
         Returns:
             The state of the flow controller, as a dictionary.
 
         """
-        state = await FlowMeter.get(self, retries)
+        state = await FlowMeter.get(self)
         state['control_point'] = self.control_point
         return state
 
