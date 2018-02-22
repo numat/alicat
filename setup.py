@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name="alicat",
-    version="0.2.1",
+    version="0.2.2",
     description="Python driver for Alicat mass flow controllers.",
     url="http://github.com/numat/alicat/",
     author="Patrick Fuller",

@@ -207,6 +207,8 @@ class FlowController(FlowMeter):
 
         """
         state = await FlowMeter.get(self)
+        if state is None:
+            return None
         state['control_point'] = self.control_point
         return state
 
@@ -257,6 +259,8 @@ class FlowController(FlowMeter):
         """Get the control point, and save to internal variable."""
         command = '{addr}R122\r'.format(addr=self.address)
         line = await self._write_and_read(command)
+        if not line:
+            return None
         value = int(line.split('=')[-1])
         try:
             return next(p for p, r in self.registers.items() if value == r)
