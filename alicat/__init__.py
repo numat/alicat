@@ -30,6 +30,8 @@ def command_line():
                              "'P-5'")
     parser.add_argument('--set-flow-rate', '-f', default=None, type=float,
                         help="Sets the target flow rate of the controller.")
+    parser.add_argument('--set-pressure', '-p', default=None, type=float,
+                        help="Sets the target pressure of the controller.")
     parser.add_argument('--stream', '-s', action='store_true',
                         help="Sends a constant stream of flow controller "
                              "data, formatted as a tab-separated table.")

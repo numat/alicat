@@ -41,7 +41,7 @@ class FlowMeter(object):
             FlowMeter.open_ports[port] = (self.connection, 1)
 
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
-                     'flow_setpoint', 'gas']
+                     'setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
                       'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
                       'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
@@ -98,7 +98,6 @@ class FlowMeter(object):
          * Temperature (normally in C)
          * Volumetric flow (in units specified at time of order)
          * Mass flow (in units specified at time of order)
-         * Flow setpoint (only for flow controllers)
          * Total flow (only on models with the optional totalizer function)
          * Currently selected gas
 
@@ -223,26 +222,112 @@ class FlowController(FlowMeter):
 
     """
 
+    registers = {'flow': 0b00100101, 'pressure': 0b00100010}
+
+    def __init__(self, port='/dev/ttyUSB0', address='A'):
+        """Connect this driver with the appropriate USB / serial port.
+
+        Args:
+            port: The serial port. Default '/dev/ttyUSB0'.
+            address: The Alicat-specified address, A-Z. Default 'A'.
+        """
+        FlowMeter.__init__(self, port, address)
+        self.control_point = self._get_control_point()
+
+    def get(self, retries=2):
+        """Get the current state of the flow controller.
+
+        From the Alicat mass flow controller documentation, this data is:
+         * Pressure (normally in psia)
+         * Temperature (normally in C)
+         * Volumetric flow (in units specified at time of order)
+         * Mass flow (in units specified at time of order)
+         * Flow setpoint (in units of control point)
+         * Flow control point (either 'flow' or 'pressure')
+         * Total flow (only on models with the optional totalizer function)
+         * Currently selected gas
+
+        Args:
+            retries: Number of times to re-attempt reading. Default 2.
+        Returns:
+            The state of the flow controller, as a dictionary.
+
+        """
+        state = FlowMeter.get(self, retries)
+        state['control_point'] = self.control_point
+        return state
+
     def set_flow_rate(self, flow, retries=2):
         """Set the target flow rate.
 
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
+        if self.control_point != 'flow':
+            self._set_setpoint(0, retries)
+            self._set_control_point('flow', retries)
+        self._set_setpoint(flow, retries)
+
+    def set_pressure(self, pressure, retries=2):
+        """Set the target pressure.
+
+        Args:
+            pressure: The target pressure, in units specified at time of
+                purchase. Likely in psia.
+        """
+        if self.control_point != 'pressure':
+            self._set_setpoint(0, retries)
+            self._set_control_point('pressure', retries)
+        self._set_setpoint(pressure, retries)
+
+    def _set_setpoint(self, setpoint, retries=2):
+        """Set the target setpoint.
+
+        Called by `set_flow_rate` and `set_pressure`, which both use the same
+        command once the appropriate register is set.
+        """
         self._test_controller_open()
 
-        command = '{addr}S{flow:.2f}\r'.format(addr=self.address, flow=flow)
+        command = '{addr}S{setpoint:.2f}\r'.format(addr=self.address,
+                                                   setpoint=setpoint)
         line = self._write_and_read(command, retries)
 
         # Some Alicat models don't return the setpoint. This accounts for
         # these devices.
         try:
-            setpoint = float(line.split()[-2])
+            current = float(line.split()[-2])
         except IndexError:
-            setpoint = None
+            current = None
 
-        if setpoint is not None and abs(setpoint - flow) > 0.01:
-            raise IOError("Could not set flow.")
+        if current is not None and abs(current - setpoint) > 0.01:
+            raise IOError("Could not set setpoint.")
+
+    def _get_control_point(self, retries=2):
+        """Get the control point, and save to internal variable."""
+        command = '{addr}R122\r'.format(addr=self.address)
+        line = self._write_and_read(command, retries)
+        value = int(line.split('=')[-1])
+        try:
+            return next(p for p, r in self.registers.items() if value == r)
+        except StopIteration:
+            raise ValueError("Unexpected register value: {:d}".format(value))
+
+    def _set_control_point(self, point, retries=2):
+        """Set whether to control on mass flow or pressure.
+
+        Args:
+            point: Either "flow" or "pressure".
+        """
+        if point not in self.registers:
+            raise ValueError("Control point must be 'flow' or 'pressure'.")
+        reg = self.registers[point]
+        command = '{addr}W122={reg:d}\r'.format(addr=self.address, reg=reg)
+        line = self._write_and_read(command, retries)
+
+        value = int(line.split('=')[-1])
+        if value != reg:
+            raise IOError("Could not set control point.")
+        self.control_point = point
 
 
 def command_line(args):
@@ -254,8 +339,12 @@ def command_line(args):
 
     if args.set_gas:
         flow_controller.set_gas(args.set_gas)
+    if args.set_flow_rate is not None and args.set_pressure is not None:
+        raise ValueError("Cannot set both flow rate and pressure.")
     if args.set_flow_rate is not None:
         flow_controller.set_flow_rate(args.set_flow_rate)
+    if args.set_pressure is not None:
+        flow_controller.set_pressure(args.set_pressure)
     state = flow_controller.get()
     if args.stream:
         try:

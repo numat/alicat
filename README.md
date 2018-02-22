@@ -65,21 +65,23 @@ return a dictionary of the form:
 
 ```python
 {
-  'flow_setpoint': 0.0,  # Mass flow setpoint
-  'gas': 'Air',          # Can be any option in `flow_controller.gases`
-  'mass_flow': 0.0,      # Mass flow (in units specified at time of purchase)
-  'pressure': 25.46,     # Pressure (normally in psia)
-  'temperature': 23.62,  # Temperature (normally in C)
-  'total_flow': 0.0,     # Optional. If totalizer function purchased, will be included
-  'volumetric_flow': 0.0 # Volumetric flow (in units specified at time of purchase)
+  'setpoint': 0.0,         # Setpoint, either mass flow rate or pressure
+  'control_point': 'flow', # Either 'flow' or 'pressure'
+  'gas': 'Air',            # Can be any option in `flow_controller.gases`
+  'mass_flow': 0.0,        # Mass flow (in units specified at time of purchase)
+  'pressure': 25.46,       # Pressure (normally in psia)
+  'temperature': 23.62,    # Temperature (normally in C)
+  'total_flow': 0.0,       # Optional. If totalizer function purchased, will be included
+  'volumetric_flow': 0.0   # Volumetric flow (in units specified at time of purchase)
 }
 ```
 
-You can also set the gas type and flow rate.
+You can also set the gas type and flow rate / pressure.
 
 ```python
 flow_controller.set_gas('N2')
 flow_controller.set_flow_rate(1.0)
+flow_controller.set_pressure(20)
 ```
 
 ### Alicat Addressing
