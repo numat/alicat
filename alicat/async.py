@@ -185,8 +185,11 @@ class FlowController(FlowMeter):
         FlowMeter.__init__(self, port, address)
 
         async def f():
-            self.control_point = await self._get_control_point()
-        self.control_point = 'flow'
+            try:
+                self.control_point = await self._get_control_point()
+            except Exception:
+                pass
+        self.control_point = 'unknown'
         asyncio.ensure_future(f())
 
     async def get(self):

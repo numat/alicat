@@ -232,7 +232,10 @@ class FlowController(FlowMeter):
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
         FlowMeter.__init__(self, port, address)
-        self.control_point = self._get_control_point()
+        try:
+            self.control_point = self._get_control_point()
+        except Exception:
+            self.control_point = 'unknown'
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
