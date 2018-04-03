@@ -109,7 +109,7 @@ class FlowMeter(object):
         """
         self._test_controller_open()
 
-        command = '*@={addr}\r'.format(addr=self.address)
+        command = '{addr}\r'.format(addr=self.address)
         line = self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]

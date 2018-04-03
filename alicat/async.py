@@ -68,7 +68,7 @@ class FlowMeter(object):
             The state of the flow controller, as a dictionary.
 
         """
-        command = '*@={addr}\r'.format(addr=self.address)
+        command = '{addr}\r'.format(addr=self.address)
         line = await self._write_and_read(command)
         if line:
             spl = line.split()
