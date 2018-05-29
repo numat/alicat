@@ -88,7 +88,7 @@ class FlowMeter(object):
             return {k: (v if k == self.keys[-1] else float(v))
                     for k, v in zip(self.keys, values)}
         else:
-            return None
+            return {k: None for k in self.keys}
 
     async def set_gas(self, gas):
         """Set the gas type.
