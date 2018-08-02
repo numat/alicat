@@ -66,9 +66,9 @@ class FlowMeter(object):
             try:
                 c = device.get()
                 if cls.__name__ == 'FlowMeter':
-                    assert c and 'flow_setpoint' not in device.keys
+                    assert c and 'setpoint' not in device.keys
                 elif cls.__name__ == 'FlowController':
-                    assert c and 'flow_setpoint' in device.keys
+                    assert c and 'setpoint' in device.keys
                 else:
                     raise NotImplementedError('Must be meter or controller.')
                 is_device = True
