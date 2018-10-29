@@ -41,7 +41,7 @@ def command_line():
         if sys.version_info < (3, 5):
             sys.stderr.write("TCP communication requires python >=3.5\n")
             return
-        from alicat.async import command_line
+        from alicat.tcp import command_line
     else:
         from alicat.serial import command_line
     command_line(args)

@@ -108,7 +108,7 @@ asynchronous syntax.
 
 ```python
 import asyncio
-from alicat.async import FlowController
+from alicat.tcp import FlowController
 
 flow_controller = FlowController('192.168.1.100', 4000)
 
