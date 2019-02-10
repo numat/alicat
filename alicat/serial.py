@@ -1,7 +1,7 @@
 """Python driver for Alicat mass flow controllers, using serial communication.
 
 Distributed under the GNU General Public License v2
-Copyright (C) 2015 NuMat Technologies
+Copyright (C) 2019 NuMat Technologies
 """
 try:
     import serial

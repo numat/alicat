@@ -1,10 +1,15 @@
 """Install parameters for CLI and python import."""
 from setuptools import setup
 
+with open('README.md', 'r') as in_file:
+    long_description = in_file.read()
+
 setup(
     name="alicat",
-    version="0.2.6",
+    version="0.2.7",
     description="Python driver for Alicat mass flow controllers.",
+    long_description=long_description,
+    long_description_content_type='text/markdown',
     url="http://github.com/numat/alicat/",
     author="Patrick Fuller",
     author_email="pat@numat-tech.com",
