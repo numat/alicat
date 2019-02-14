@@ -76,7 +76,7 @@ class FlowMeter(object):
 
             # Mass/volume over range error.
             # Explicitly silenced because I find it redundant.
-            while values[-1] in ['MOV', 'VOV']:
+            while values[-1].upper() in ['MOV', 'VOV']:
                 del values[-1]
 
             if address != self.address:
