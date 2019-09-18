@@ -235,7 +235,7 @@ class FlowController(FlowMeter):
         try:
             self.control_point = self._get_control_point()
         except Exception:
-            self.control_point = 'unknown'
+            self.control_point = None
 
     def get(self, retries=2):
         """Get the current state of the flow controller.
@@ -268,7 +268,7 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        if self.control_point != 'flow':
+        if self.control_point is not None and self.control_point != 'flow':
             self._set_setpoint(0, retries)
             self._set_control_point('flow', retries)
         self._set_setpoint(flow, retries)
@@ -280,7 +280,7 @@ class FlowController(FlowMeter):
             pressure: The target pressure, in units specified at time of
                 purchase. Likely in psia.
         """
-        if self.control_point != 'pressure':
+        if self.control_point is not None and self.control_point != 'pressure':
             self._set_setpoint(0, retries)
             self._set_control_point('pressure', retries)
         self._set_setpoint(pressure, retries)
