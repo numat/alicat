@@ -132,21 +132,166 @@ class FlowMeter(object):
         """Set the gas type.
 
         Args:
-            gas: The gas type, as a string. Supported gas types are:
+            gas: The gas type, as a string or integer. Supported gas types by string are:
                 'Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He', 'N2',
                 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2', 'C2H4',
                 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
                 'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
+
+                All gases on the device can be called by integer, and gas mixes can only be
+                called by the mix number.
         """
         self._test_controller_open()
 
-        if gas not in self.gases:
-            raise ValueError("{} not supported!".format(gas))
-        command = '{addr}$${gas}\r'.format(addr=self.address,
-                                           gas=self.gases.index(gas))
-        line = self._write_and_read(command, retries)
-        if line.split()[-1] != gas:
+        num = False
+        if isinstance(gas, str) is False:
+            num = True
+
+        if num is True:
+            command = '{addr}$${index}\r'.format(addr=self.address,
+                                               index=gas)
+            line = self._write_and_read(command, retries)
+        else:
+            if gas not in self.gases:
+                raise ValueError("{} not supported!".format(gas))
+            command = '{addr}$${gas}\r'.format(addr=self.address, gas=self.gases.index(gas))
+            line = self._write_and_read(command, retries)
+
+        if line.split()[-1] != gas and num is False:
             raise IOError("Could not set gas type")
+        elif num is True:
+            check = self._write_and_read('{addr}??G{num}\r'.format(addr=self.address, num=gas), retries)
+            if line.split()[-1] != check.split()[-1]:
+                raise IOError("Could not set gas type")
+
+    def create_mix(self, mix_no, name, gas1, gas2, gas3=None, gas4=None, gas5=None, retries=2):
+        """Create a gas mix.
+
+        Gas mixes are made using COMPOSER software located from the front panel and over serial.
+        COMPOSER mixes can only be made on Alicat devices with firmware 5v or greater.
+
+        Args:
+            mix_no: The mix number. Gas mixes are stored in slots 236-255. A mix number of 0 will create a mix in
+            the earliest available spot.
+            gas1-5: Should be formatted as a tuple with the percentage mix and gas. Up to five gases can be
+            mixed together."""
+
+        self._test_controller_open()
+
+        # [UNIT ID]VE command is not used here because the format is inconsistent between firmware revisions.
+        # This is probably not the best method..
+        read = '{addr}??M09\r'.format(addr=self.address)
+        # try:
+        #     firmware = self._write_and_read(read, retries)
+        # except:
+        #     # A GP firmware device will only have M01-M08, and does not support COMPOSER.
+        #     raise IOError("This unit does not support COMPOSER gas mixes.")
+        #
+        # spl = firmware.split()
+        # rev = spl[-1]
+        #
+        # if '2V' in rev or '3v' in rev or '4v' in rev:
+        #     raise IOError("This unit does not support COMPOSER gas mixes.")
+
+        if mix_no<236 or mix_no>255:
+            raise ValueError("Mix number must be between 236-225!")
+
+        total_percent = 0
+        mix_list = [gas1, gas2, gas3, gas4, gas5]
+        for g in range(0,5):
+            if mix_list[g] != None:
+                total_percent += mix_list[g][0]
+        if total_percent != 100:
+            raise ValueError("Percentages of gas mix must add to 100%!")
+
+        if gas1 != None and gas1[1] not in self.gases:
+            raise ValueError("{} not supported!".format(gas1[1]))
+        if gas2 != None and gas2[1] not in self.gases:
+            raise ValueError("{} not supported!".format(gas2[1]))
+        if gas3 != None and gas3[1] not in self.gases:
+            raise ValueError("{} not supported!".format(gas3[1]))
+        if gas4 != None and gas4[1] not in self.gases:
+            raise ValueError("{} not supported!".format(gas4[1]))
+        if gas5 != None and gas4[1] not in self.gases:
+            raise ValueError("{} not supported!".format(gas5[1]))
+
+        command = '{addr} GM {shortName} {mixNumber} {percent1} {gasno1}' \
+                  ' {percent2} {gasno2} {percent3} {gasno3} {percent4} {gasno4} {percent5}' \
+                  ' {gasno5}\r'.format(addr=self.address, shortName=name, mixNumber=mix_no, percent1=gas1[0],
+                                     gasno1=self.gases.index(gas1[1]), percent2=gas2[0], gasno2=self.gases.index(gas2[1]),
+                                     percent3=gas3[0] if gas3 is not None else "", gasno3=self.gases.index(gas3[1]) if gas3 is not None else "", gasno4=self.gases.index(gas4[1]) if gas4 is not None else "",
+                                     percent4=gas4[0] if gas4 is not None else "", percent5=gas5[0] if gas5 is not None else "", gasno5=self.gases.index(gas5[1]) if gas5 is not None else "")
+
+        line = self._write_and_read(command, retries)
+
+        # If a gas mix is not successfully created, a ? is returned.
+        if line == '?':
+            raise IOError("Unable to create mix.")
+
+
+    def delete_mix(self, mix_no, retries=2):
+        """Delete a gas mix."""
+
+        self._test_controller_open()
+        command = "{addr}GD{mixNumber}\r".format(addr=self.address, mixNumber=mix_no)
+        line = self._write_and_read(command, retries)
+
+        if line == '?':
+            raise IOError("Unable to delete mix.")
+
+    def lock(self, retries=2):
+        """Lock the display.
+
+        Only supported on devices with a display."""
+
+        self._test_controller_open()
+        command = '{addr}$$L\r'.format(addr=self.address)
+        self._write_and_read(command, retries)
+
+    def unlock(self, retries=2):
+        """Unlock the display.
+
+        Only supported on devices with a display."""
+
+        self._test_controller_open()
+        command = '{addr}$$U\r'.format(addr=self.address)
+        self._write_and_read(command, retries)
+
+    def tare_pressure(self, retries=2):
+        """Tare the pressure.
+
+        Should only be performed if device at ambient conditions
+        e.g. no flow, device open to atmosphere"""
+
+        self._test_controller_open()
+
+        command = '{addr}$$PC\r'.format(addr=self.address)
+        line = self._write_and_read(command, retries)
+
+        if line == '?':
+            raise IOError("Unable to tare pressure.")
+
+    def tare_volumetric(self, retries=2):
+        """Tare volumetric flow.
+
+        Should only be performed if device at ambient conditions
+        e.g. no flow, device open to atmosphere"""
+
+        self._test_controller_open()
+        command = '{addr}$$V\r'.format(addr=self.address)
+        line = self._write_and_read(command, retries)
+
+        if line == '?':
+            raise IOError("Unable to tare flow.")
+
+
+    def reset_tot(self, retries=2):
+        """Reset the totalizer, only valid for mass flow or liquid Alicats with a totalizer"""
+
+        self._test_controller_open()
+        command = '{addr}T\r'.format(addr=self.address)
+        self._write_and_read(command, retries)
+
 
     def flush(self):
         """Read all available information. Use to clear queue."""
@@ -180,7 +325,7 @@ class FlowMeter(object):
         """Write a command and reads a response from the flow controller."""
         self._test_controller_open()
 
-        for _ in range(retries+1):
+        for _ in range(retries + 1):
             self.connection.write(command.encode('ascii'))
             line = self._readline()
             if line:
@@ -285,6 +430,111 @@ class FlowController(FlowMeter):
             self._set_control_point('pressure', retries)
         self._set_setpoint(pressure, retries)
 
+    def hold(self, retries=2):
+        """Override command to issue a valve hold.
+
+        For a single valve mass flow/pressure controller, hold the valve at the present value.
+        For a dual valve mass flow controller, hold the valve at the present value.
+        For a dual valve pressure controller, close both valves.
+        """
+        self._test_controller_open()
+        command = '{addr}$$H\r'.format(addr=self.address)
+        self._write_and_read(command, retries)
+
+    def cancel_hold(self, retries=2):
+        """Cancel valve hold."""
+
+        self._test_controller_open()
+        command = '{addr}$$C\r'.format(addr=self.address)
+        self._write_and_read(command, retries)
+
+    def read_PID(self, retries=2):
+        """Read the current PID values on the controller.
+
+        Values include the loop type, P value, D value, and I value.
+
+        Values returned as a dictionary"""
+
+        self._test_controller_open()
+
+        self.pid_keys = ['loop_type', 'P', 'D', 'I']
+
+        command = '{addr}$$r85\r'.format(addr=self.address)
+        read_loop_type = self._write_and_read(command, retries)
+        spl = read_loop_type.split()
+
+        if spl[3] == '2':
+            loop_type = 'PD2I'
+        elif spl[3] == '1' or spl[3] == '0':
+            loop_type = 'PD/PDF'
+
+        pid_values = [loop_type]
+        for register in range(21, 24):
+            value = self._write_and_read('{}$$r{}\r'.format(self.address, register))
+            value_spl = value.split()
+            pid_values.append(value_spl[3])
+
+        result = {k: (v if k == self.pid_keys[-1] else str(v))
+                  for k, v in zip(self.pid_keys, pid_values)}
+
+        return result
+
+    def write_PID_looptype(self, looptype, retries=2):
+        """Change the PID loop from PD/PDF to PD2I and vice versa
+
+        Done by changing the appropriate bits in register 85."""
+
+        self._test_controller_open()
+
+        if looptype == 'PD/PDF':
+            command = '{addr}$$w85=1\r'.format(addr=self.address)
+        elif looptype == 'PD2I':
+            command = '{addr}$$w85=2\r'.format(addr=self.address)
+        else:
+            raise IOError('Not a valid loop type.')
+
+        self._write_and_read(command, retries)
+
+    def write_PID_P(self, p_value, retries=2):
+        """Changing P value for PID tuning.
+
+        P is the proportional control variable and controlls how fast setpoint can be achieved."""
+
+        self._test_controller_open()
+
+        value = p_value
+
+        command = '{}$$w21={}\r'.format(self.address, value)
+
+        self._write_and_read(command, retries)
+
+    def write_PID_D(self, d_value, retries=2):
+        """Changing D value for PID tuning.
+
+        D is the derivative term and primarily operates to dampen overshoots and reduce oscillations."""
+
+        self._test_controller_open()
+
+        value = d_value
+
+        command = '{}$$w22={}\r'.format(self.address, value)
+
+        self._write_and_read(command, retries)
+
+    def write_PID_I(self, i_value, retries=2):
+        """Changing I value for PID tuning.
+
+        I is the integral term and accounts for past behaviour to provide a control response.
+        Only used in PD2I tuning. It can be changed if loop type is PD/PDF but it will have no effect no control."""
+
+        self._test_controller_open()
+
+        value = i_value
+
+        command = '{}$$w23={}\r'.format(self.address, value)
+
+        self._write_and_read(command, retries)
+
     def _set_setpoint(self, setpoint, retries=2):
         """Set the target setpoint.
 
@@ -297,13 +547,14 @@ class FlowController(FlowMeter):
                                                    setpoint=setpoint)
         line = self._write_and_read(command, retries)
 
-        # Some Alicat models don't return the setpoint. This accounts for
-        # these devices.
         try:
             current = float(line.split()[-2])
         except IndexError:
             current = None
 
+        # What is this supposed to be doing?
+        # Problems: If device has a totalizer then current will call the totalizer value.
+        # In this specific case, the setpoint will still be changed, but it will raise an error for no reason.
         if current is not None and abs(current - setpoint) > 0.01:
             raise IOError("Could not set setpoint.")
 
@@ -368,3 +619,4 @@ def command_line(args):
     else:
         print(json.dumps(state, indent=2, sort_keys=True))
     flow_controller.close()
+
