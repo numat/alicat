@@ -157,12 +157,23 @@ class FlowMeter(object):
             command = '{addr}$${gas}\r'.format(addr=self.address, gas=self.gases.index(gas))
             line = self._write_and_read(command, retries)
 
-        if line.split()[-1] != gas and num is False:
-            raise IOError("Could not set gas type")
-        elif num is True:
-            check = self._write_and_read('{addr}??G{num}\r'.format(addr=self.address, num=gas), retries)
-            if line.split()[-1] != check.split()[-1]:
-                raise IOError("Could not set gas type")
+        read_reg46 = self._write_and_read('{addr}R46\r'.format(addr=self.address), retries)
+        reg46 = int(read_reg46.split()[-1])
+        bits = [32768, 16384, 8192, 4096, 2048, 1024, 512]
+
+        for u in range(0, 7):
+            reg46 = reg46 - bits[u]
+            if reg46 < 0:
+                reg46 = reg46 + bits[u]
+            elif reg46 < 255:
+                break
+
+        if num is True:
+            if gas != reg46:
+                raise IOError("Cannot set gas, gas set to Air.")
+        else:
+            if self.gases.index(gas) != reg46:
+                raise IOError("Cannot set gas.")
 
     def create_mix(self, mix_no, name, gas1, gas2, gas3=None, gas4=None, gas5=None, retries=2):
         """Create a gas mix.
@@ -181,17 +192,17 @@ class FlowMeter(object):
         # [UNIT ID]VE command is not used here because the format is inconsistent between firmware revisions.
         # This is probably not the best method..
         read = '{addr}??M09\r'.format(addr=self.address)
-        # try:
-        #     firmware = self._write_and_read(read, retries)
-        # except:
-        #     # A GP firmware device will only have M01-M08, and does not support COMPOSER.
-        #     raise IOError("This unit does not support COMPOSER gas mixes.")
-        #
-        # spl = firmware.split()
-        # rev = spl[-1]
-        #
-        # if '2V' in rev or '3v' in rev or '4v' in rev:
-        #     raise IOError("This unit does not support COMPOSER gas mixes.")
+        try:
+            firmware = self._write_and_read(read, retries)
+        except:
+            # A GP firmware device will only have M01-M08, and does not support COMPOSER.
+            raise IOError("This unit does not support COMPOSER gas mixes.")
+
+        spl = firmware.split()
+        rev = spl[-1]
+
+        if '2V' in rev or '3v' in rev or '4v' in rev:
+            raise IOError("This unit does not support COMPOSER gas mixes.")
 
         if mix_no<236 or mix_no>255:
             raise ValueError("Mix number must be between 236-225!")
@@ -548,13 +559,10 @@ class FlowController(FlowMeter):
         line = self._write_and_read(command, retries)
 
         try:
-            current = float(line.split()[-2])
+            current = float(line.split()[5])
         except IndexError:
             current = None
 
-        # What is this supposed to be doing?
-        # Problems: If device has a totalizer then current will call the totalizer value.
-        # In this specific case, the setpoint will still be changed, but it will raise an error for no reason.
         if current is not None and abs(current - setpoint) > 0.01:
             raise IOError("Could not set setpoint.")
 
@@ -619,4 +627,3 @@ def command_line(args):
     else:
         print(json.dumps(state, indent=2, sort_keys=True))
     flow_controller.close()
-
