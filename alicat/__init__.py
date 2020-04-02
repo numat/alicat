@@ -19,7 +19,8 @@ def command_line():
                         "to read devices routed through a converter.")
     parser.add_argument('--address', '-a', default='A', type=str, help="The "
                         "device address, A-D. Should only be used if multiple "
-                        "flow controllers are connected to one port.")
+                        "flow controllers are connected to one port or if"
+                        "device ID is not A.")
     parser.add_argument('--set-gas', '-g', default=None, type=str,
                         help="Sets the gas type. Supported gas types are: "
                              "'Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', "
@@ -35,6 +36,16 @@ def command_line():
     parser.add_argument('--stream', '-s', action='store_true',
                         help="Sends a constant stream of flow controller "
                              "data, formatted as a tab-separated table.")
+    parser.add_argument("--lock", "-l", action="store_true",
+                        help="Locks device display.")
+    parser.add_argument("--unlock", "-u", action="store_true",
+                        help="Unlocks device display.")
+    parser.add_argument("--hold", "-hd", action="store_true",
+                        help="Holds the valve at the present value.")
+    parser.add_argument("--cancel-hold", "-c", action="store_true",
+                        help="Cancel valve hold.")
+    parser.add_argument("--reset-totalizer", "-r", action="store_true",
+                        help="Reset current value of totalizer to zero.")
     args = parser.parse_args()
 
     if args.port.startswith('tcp://'):
