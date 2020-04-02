@@ -143,9 +143,10 @@ class FlowMeter(object):
         """
         self._test_controller_open()
 
-        num = False
         if isinstance(gas, str) is False:
             num = True
+        else:
+            num = False
 
         if num is True:
             command = '{addr}$${index}\r'.format(addr=self.address,
@@ -611,6 +612,16 @@ def command_line(args):
         flow_controller.set_flow_rate(args.set_flow_rate)
     if args.set_pressure is not None:
         flow_controller.set_pressure(args.set_pressure)
+    if args.lock:
+        flow_controller.lock()
+    if args.unlock:
+        flow_controller.unlock()
+    if args.hold:
+        flow_controller.hold()
+    if args.cancel_hold:
+        flow_controller.cancel_hold()
+    if args.reset_totalizer:
+        flow_controller.reset_tot()
     state = flow_controller.get()
     if args.stream:
         try:
