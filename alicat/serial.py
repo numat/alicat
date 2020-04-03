@@ -138,8 +138,10 @@ class FlowMeter(object):
                 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
                 'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
 
-                All gases on the device can be called by integer, and gas mixes can only be
-                called by the mix number.
+                For the full gas table, please see page 54 of the controller manual here:
+                https://documents.alicat.com/manuals/DOC-MANUAL-MC.pdf
+
+                Gas mixes may only be called by their mix number.
         """
         self._test_controller_open()
 
@@ -176,7 +178,7 @@ class FlowMeter(object):
             if self.gases.index(gas) != reg46:
                 raise IOError("Cannot set gas.")
 
-    def create_mix(self, mix_no, name, gas1, gas2, gas3=None, gas4=None, gas5=None, retries=2):
+    def create_mix(self, mix_no, name, gas1, percent1, gas2, percent2, gas3=None, percent3=None, gas4=None, percent4=None, gas5=None, percent5=None, retries=2):
         """Create a gas mix.
 
         Gas mixes are made using COMPOSER software located from the front panel and over serial.
@@ -185,61 +187,56 @@ class FlowMeter(object):
         Args:
             mix_no: The mix number. Gas mixes are stored in slots 236-255. A mix number of 0 will create a mix in
             the earliest available spot.
-            gas1-5: Should be formatted as a tuple with the percentage mix and gas. Up to five gases can be
-            mixed together."""
+            name: A name for the gas that will appear on the front panel. Names greater than six letters will be
+            cut off.
+            gas#: Name of the gas, as a string. Supported gas types are:
+                'Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He', 'N2',
+                'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2', 'C2H4',
+                'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
+                'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
+            percent#: The percentage of the mix for the corresponding gas."""
 
         self._test_controller_open()
 
-        # [UNIT ID]VE command is not used here because the format is inconsistent between firmware revisions.
-        # This is probably not the best method..
-        read = '{addr}??M09\r'.format(addr=self.address)
-        try:
-            firmware = self._write_and_read(read, retries)
-        except:
-            # A GP firmware device will only have M01-M08, and does not support COMPOSER.
+        read = '{addr}VE\r'.format(addr=self.address)
+        firmware = self._write_and_read(read, retries)
+        if "2v" in firmware or "3v" in firmware or "4v" in firmware or "GP" in firmware:
             raise IOError("This unit does not support COMPOSER gas mixes.")
 
-        spl = firmware.split()
-        rev = spl[-1]
-
-        if '2V' in rev or '3v' in rev or '4v' in rev:
-            raise IOError("This unit does not support COMPOSER gas mixes.")
-
-        if mix_no<236 or mix_no>255:
+        if mix_no < 236 or mix_no > 255:
             raise ValueError("Mix number must be between 236-225!")
 
         total_percent = 0
-        mix_list = [gas1, gas2, gas3, gas4, gas5]
-        for g in range(0,5):
-            if mix_list[g] != None:
-                total_percent += mix_list[g][0]
+        mix_list = [percent1, percent2, percent3, percent4, percent5]
+        for i in range(0, 5):
+            if mix_list[i] is not None:
+                total_percent += mix_list[i]
         if total_percent != 100:
             raise ValueError("Percentages of gas mix must add to 100%!")
 
-        if gas1 != None and gas1[1] not in self.gases:
-            raise ValueError("{} not supported!".format(gas1[1]))
-        if gas2 != None and gas2[1] not in self.gases:
-            raise ValueError("{} not supported!".format(gas2[1]))
-        if gas3 != None and gas3[1] not in self.gases:
-            raise ValueError("{} not supported!".format(gas3[1]))
-        if gas4 != None and gas4[1] not in self.gases:
-            raise ValueError("{} not supported!".format(gas4[1]))
-        if gas5 != None and gas4[1] not in self.gases:
-            raise ValueError("{} not supported!".format(gas5[1]))
+        if gas1 is not None and gas1 not in self.gases:
+            raise ValueError("{} not supported!".format(gas1))
+        if gas2 is not None and gas2 not in self.gases:
+            raise ValueError("{} not supported!".format(gas2))
+        if gas3 is not None and gas3 not in self.gases:
+            raise ValueError("{} not supported!".format(gas3))
+        if gas4 is not None and gas4 not in self.gases:
+            raise ValueError("{} not supported!".format(gas4))
+        if gas5 is not None and gas5 not in self.gases:
+            raise ValueError("{} not supported!".format(gas5))
 
-        command = '{addr} GM {shortName} {mixNumber} {percent1} {gasno1}' \
-                  ' {percent2} {gasno2} {percent3} {gasno3} {percent4} {gasno4} {percent5}' \
-                  ' {gasno5}\r'.format(addr=self.address, shortName=name, mixNumber=mix_no, percent1=gas1[0],
-                                     gasno1=self.gases.index(gas1[1]), percent2=gas2[0], gasno2=self.gases.index(gas2[1]),
-                                     percent3=gas3[0] if gas3 is not None else "", gasno3=self.gases.index(gas3[1]) if gas3 is not None else "", gasno4=self.gases.index(gas4[1]) if gas4 is not None else "",
-                                     percent4=gas4[0] if gas4 is not None else "", percent5=gas5[0] if gas5 is not None else "", gasno5=self.gases.index(gas5[1]) if gas5 is not None else "")
+        command = '{addr} GM {shortName} {mixNumber} {p1} {g1}' \
+                  ' {p2} {g2} {p3} {g3} {p4} {g4} {p5}' \
+                  ' {g5}\r'.format(addr=self.address, shortName=name, mixNumber=mix_no, p1=percent1,
+                                     g1=self.gases.index(gas1), p2=percent2, g2=self.gases.index(gas2),
+                                     p3=percent3 if gas3 is not None else "", g3=self.gases.index(gas3) if gas3 is not None else "", p4=percent4 if gas4 is not None else "",
+                                     g4=gas4 if gas4 is not None else "", p5=percent5 if gas5 is not None else "", g5=self.gases.index(gas5) if gas5 is not None else "")
 
         line = self._write_and_read(command, retries)
 
         # If a gas mix is not successfully created, a ? is returned.
         if line == '?':
             raise IOError("Unable to create mix.")
-
 
     def delete_mix(self, mix_no, retries=2):
         """Delete a gas mix."""
