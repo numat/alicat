@@ -138,7 +138,7 @@ class FlowMeter(object):
                 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10', 'C-8', 'C-2',
                 'C-75', 'A-75', 'A-25', 'A1025', 'Star29', 'P-5'
 
-                For the full gas table, please see page 54 of the controller manual here:
+                For the full gas table, please see page 52 of the controller manual here:
                 https://documents.alicat.com/manuals/DOC-MANUAL-MC.pdf
 
                 Gas mixes may only be called by their mix number.
