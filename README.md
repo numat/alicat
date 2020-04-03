@@ -80,8 +80,46 @@ You can also set the gas type and flow rate / pressure.
 
 ```python
 flow_controller.set_gas('N2')
+flow_controller.set_gas(8)         # Optionally set a gas by it's number; find the full gas table on page 52 of the Alicat manual.
 flow_controller.set_flow_rate(1.0)
 flow_controller.set_pressure(20)
+```
+
+For firmwave 5v and greater, create and set gas mixes using COMPOSER software loaded into the device. Mixes can contain up to five gases, and are stored in gas indices 236-255. 
+
+```python
+flow_controller.create_mix(mix_no=236, name="Mix1", gas1="N2", percent1=50, gas2="Ar", percent2=50)
+flow_controller.set_gas(236)
+flow_controller.delete_mix(236)
+```
+
+Additional features include override commands to increase device functionality.
+
+```python
+flow_controller.lock()            # Lock the front display.
+flow_controller.unlock()          # Unlock the front display.
+flow_controller.hold()            # Hold the valve in its current position. 
+flow_controller.cancel_hold()     # Cancel the valve hold.
+flow_controller.tare_volumetric() # Tare volumetric hold.
+flow_controller.tare_pressure()   # Tare pressure.
+flow_controller.reset_tot()       # Reset totalizer, if totalizer functionality included.
+```
+
+For flow controllers, read and write PID loop settings for device tuning. 
+
+```python
+flow_controller.write_PID_looptype("PD2I")
+flow_controller.write_PID_P(4000)
+flow_controller.write_PID_D(10)
+flow_controller.write_PID_I(4000)
+print(flow_controller.read_PID())
+
+>>>{
+'loop_type': 'PD2I',
+'P': '4000',
+'D': '10',
+'I': '4000'
+}
 ```
 
 ### Alicat Addressing
