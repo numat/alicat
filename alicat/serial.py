@@ -153,14 +153,14 @@ class FlowMeter(object):
         if num is True:
             command = '{addr}$${index}\r'.format(addr=self.address,
                                                index=gas)
-            line = self._write_and_read(command, retries)
+            self._write_and_read(command, retries)
         else:
             if gas not in self.gases:
                 raise ValueError("{} not supported!".format(gas))
             command = '{addr}$${gas}\r'.format(addr=self.address, gas=self.gases.index(gas))
-            line = self._write_and_read(command, retries)
+            self._write_and_read(command, retries)
 
-        read_reg46 = self._write_and_read('{addr}R46\r'.format(addr=self.address), retries)
+        read_reg46 = self._write_and_read('{addr}$$R46\r'.format(addr=self.address), retries)
         reg46 = int(read_reg46.split()[-1])
         bits = [32768, 16384, 8192, 4096, 2048, 1024, 512]
 
@@ -500,7 +500,7 @@ class FlowController(FlowMeter):
         elif looptype == 'PD2I':
             command = '{addr}$$w85=2\r'.format(addr=self.address)
         else:
-            raise IOError('Not a valid loop type.')
+            raise ValueError('Not a valid loop type.')
 
         self._write_and_read(command, retries)
 
@@ -508,26 +508,18 @@ class FlowController(FlowMeter):
         """Changing P value for PID tuning.
 
         P is the proportional control variable and controlls how fast setpoint can be achieved."""
-
         self._test_controller_open()
-
         value = p_value
-
-        command = '{}$$w21={}\r'.format(self.address, value)
-
+        command = '{addr}$$w21={v}\r'.format(addr=self.address, v=value)
         self._write_and_read(command, retries)
 
     def write_PID_D(self, d_value, retries=2):
         """Changing D value for PID tuning.
 
         D is the derivative term and primarily operates to dampen overshoots and reduce oscillations."""
-
         self._test_controller_open()
-
         value = d_value
-
-        command = '{}$$w22={}\r'.format(self.address, value)
-
+        command = '{addr}$$w22={v}\r'.format(addr=self.address, v=value)
         self._write_and_read(command, retries)
 
     def write_PID_I(self, i_value, retries=2):
@@ -535,13 +527,9 @@ class FlowController(FlowMeter):
 
         I is the integral term and accounts for past behaviour to provide a control response.
         Only used in PD2I tuning. It can be changed if loop type is PD/PDF but it will have no effect no control."""
-
         self._test_controller_open()
-
         value = i_value
-
-        command = '{}$$w23={}\r'.format(self.address, value)
-
+        command = '{addr}$$w23={v}\r'.format(addr=self.address, v=value)
         self._write_and_read(command, retries)
 
     def _set_setpoint(self, setpoint, retries=2):
