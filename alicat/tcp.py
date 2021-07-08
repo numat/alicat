@@ -165,8 +165,9 @@ class FlowController(FlowMeter):
     [Reference](http://www.alicat.com/products/mass-flow-meters-and-
     controllers/mass-flow-controllers/).
 
-    This communicates with the flow controller over a USB or RS-232/RS-485
-    connection using pyserial.
+    This communicates with the flow controller over a TCP bridge such as the
+    [StarTech Device Server](https://www.startech.com/Networking-IO/
+    Serial-over-IP/4-Port-Serial-Ethernet-Device-Server-with-PoE~NETRS42348PD).
 
     To set up your Alicat flow controller, power on the device and make sure
     that the "Setpoint Source" option is set to "Serial".
@@ -174,14 +175,15 @@ class FlowController(FlowMeter):
 
     registers = {'flow': 0b00100101, 'pressure': 0b00100010}
 
-    def __init__(self, port='/dev/ttyUSB0', address='A'):
-        """Connect this driver with the appropriate USB / serial port.
+    def __init__(self, ip, port, address='A'):
+        """Initialize the device client.
 
         Args:
-            port: The serial port. Default '/dev/ttyUSB0'.
+            ip: IP address of the device server
+            port: Port of the device server
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
-        FlowMeter.__init__(self, port, address)
+        FlowMeter.__init__(self, ip, port, address)
 
         async def f():
             try:
@@ -292,7 +294,7 @@ def command_line(args):
     import json
     from time import time
 
-    ip, port = args.port[6:].split(':')
+    ip, port = args.port[6:].split(':')  # strip 'tcp://'
     port = int(port)
     flow_controller = FlowController(ip, port, args.address)
 
