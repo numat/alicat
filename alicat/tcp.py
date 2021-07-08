@@ -83,6 +83,9 @@ class FlowMeter(object):
 
             if address != self.address:
                 raise ValueError("Flow controller address mismatch.")
+            if '=' in values:
+                raise ValueError(f'Received reply {values} intended for another request. '
+                                 f'Are there simultaneous connections?')
             if len(values) == 5 and len(self.keys) == 6:
                 del self.keys[-2]
             elif len(values) == 7 and len(self.keys) == 6:
