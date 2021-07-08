@@ -1,4 +1,4 @@
-"""Python driver for Alicat mass flow controllers, using asynchronous TCP.
+"""Python driver for Alicat mass flow meters and controllers, using asynchronous TCP.
 
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
@@ -20,6 +20,9 @@ class FlowMeter(object):
     This communicates with the flow meter over a TCP bridge such as the
     [StarTech Device Server](https://www.startech.com/Networking-IO/
     Serial-over-IP/4-Port-Serial-Ethernet-Device-Server-with-PoE~NETRS42348PD).
+
+    To set up your Alicat flow meter, power on the device and make sure
+    that the "Setpoint Source" option is set to "Serial".
     """
 
     def __init__(self, ip, port, address='A'):
@@ -53,9 +56,9 @@ class FlowMeter(object):
         self.open = True
 
     async def get(self):
-        """Get the current state of the flow controller.
+        """Get the current state of the flow meter.
 
-        From the Alicat mass flow controller documentation, this data is:
+        From the Alicat mass flow meter documentation, this data is:
          * Pressure (normally in psia)
          * Temperature (normally in C)
          * Volumetric flow (in units specified at time of order)
@@ -166,7 +169,7 @@ class FlowController(FlowMeter):
     connection using pyserial.
 
     To set up your Alicat flow controller, power on the device and make sure
-    that the "Input" option is set to "Serial".
+    that the "Setpoint Source" option is set to "Serial".
     """
 
     registers = {'flow': 0b00100101, 'pressure': 0b00100010}
