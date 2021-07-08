@@ -34,10 +34,9 @@ class FlowMeter(object):
         self.port = port
         self.address = address
         self.open = False
-        self.reconnecting = False
+        self.lock = asyncio.Lock()
         self.timeouts = 0
         self.max_timeouts = 10
-        self.waiting = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
@@ -120,43 +119,40 @@ class FlowMeter(object):
         There are two fail points here: 1. communication between this driver
         and the proxy, and 2. communication between the proxy and the Alicat.
         We need to separately check for and manage each.
+        A lock is used to queue multiple requests.
         """
-        if self.waiting:
-            return None
-        self.waiting = True
+        async with self.lock:  # lock releases on CancelledError
+            try:
+                if not self.open:
+                    await asyncio.wait_for(self._connect(), timeout=0.25)
+                self.reconnecting = False
+            except asyncio.TimeoutError:
+                if not self.reconnecting:
+                    logging.error('Connecting to {}:{} timed out.'.format(
+                                  self.ip, self.port))
+                self.reconnecting = True
+                return None
+            except Exception as e:
+                logging.warning('Failed to connect: {}'.format(e))
+                self.close()
+                return None
 
-        try:
-            if not self.open:
-                await asyncio.wait_for(self._connect(), timeout=0.25)
-            self.reconnecting = False
-        except asyncio.TimeoutError:
-            if not self.reconnecting:
-                logging.error('Connecting to {}:{} timed out.'.format(
-                              self.ip, self.port))
-            self.reconnecting = True
-            return None
-        except Exception as e:
-            logging.warning('Failed to connect: {}'.format(e))
-            self.close()
-            return None
-
-        try:
-            self.connection['writer'].write(command.encode())
-            future = self.connection['reader'].readuntil(b'\r')
-            line = await asyncio.wait_for(future, timeout=0.25)
-            result = line.decode().strip()
-            self.timeouts = 0
-        except asyncio.TimeoutError:
-            self.timeouts += 1
-            if self.timeouts == self.max_timeouts:
-                logging.error('Reading Alicat from {}:{} timed out {} times.'
-                              .format(self.ip, self.port, self.max_timeouts))
-            result = None
-        except Exception as e:
-            logging.warning('Failed to connect: {}'.format(e))
-            self.close()
-            result = None
-        self.waiting = False
+            try:
+                self.connection['writer'].write(command.encode())
+                future = self.connection['reader'].readuntil(b'\r')
+                line = await asyncio.wait_for(future, timeout=0.25)
+                result = line.decode().strip()
+                self.timeouts = 0
+            except asyncio.TimeoutError:
+                self.timeouts += 1
+                if self.timeouts == self.max_timeouts:
+                    logging.error('Reading Alicat from {}:{} timed out {} times.'
+                                  .format(self.ip, self.port, self.max_timeouts))
+                result = None
+            except Exception as e:
+                logging.warning('Failed to connect: {}'.format(e))
+                self.close()
+                result = None
         return result
 
 
