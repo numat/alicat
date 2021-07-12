@@ -1,4 +1,4 @@
-"""Python driver for Alicat mass flow controllers, using asynchronous TCP.
+"""Python driver for Alicat mass flow meters and controllers, using asynchronous TCP.
 
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
@@ -20,6 +20,9 @@ class FlowMeter(object):
     This communicates with the flow meter over a TCP bridge such as the
     [StarTech Device Server](https://www.startech.com/Networking-IO/
     Serial-over-IP/4-Port-Serial-Ethernet-Device-Server-with-PoE~NETRS42348PD).
+
+    To set up your Alicat flow meter, power on the device and make sure
+    that the "Setpoint Source" option is set to "Serial".
     """
 
     def __init__(self, ip, port, address='A'):
@@ -34,10 +37,9 @@ class FlowMeter(object):
         self.port = port
         self.address = address
         self.open = False
-        self.reconnecting = False
+        self.lock = asyncio.Lock()
         self.timeouts = 0
         self.max_timeouts = 10
-        self.waiting = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
@@ -54,9 +56,9 @@ class FlowMeter(object):
         self.open = True
 
     async def get(self):
-        """Get the current state of the flow controller.
+        """Get the current state of the flow meter.
 
-        From the Alicat mass flow controller documentation, this data is:
+        From the Alicat mass flow meter documentation, this data is:
          * Pressure (normally in psia)
          * Temperature (normally in C)
          * Volumetric flow (in units specified at time of order)
@@ -81,6 +83,9 @@ class FlowMeter(object):
 
             if address != self.address:
                 raise ValueError("Flow controller address mismatch.")
+            if '=' in values:
+                raise ValueError(f'Received reply {values} intended for another request. '
+                                 f'Are there simultaneous connections?')
             if len(values) == 5 and len(self.keys) == 6:
                 del self.keys[-2]
             elif len(values) == 7 and len(self.keys) == 6:
@@ -120,43 +125,40 @@ class FlowMeter(object):
         There are two fail points here: 1. communication between this driver
         and the proxy, and 2. communication between the proxy and the Alicat.
         We need to separately check for and manage each.
+        A lock is used to queue multiple requests.
         """
-        if self.waiting:
-            return None
-        self.waiting = True
+        async with self.lock:  # lock releases on CancelledError
+            try:
+                if not self.open:
+                    await asyncio.wait_for(self._connect(), timeout=0.25)
+                self.reconnecting = False
+            except asyncio.TimeoutError:
+                if not self.reconnecting:
+                    logging.error('Connecting to {}:{} timed out.'.format(
+                                  self.ip, self.port))
+                self.reconnecting = True
+                return None
+            except Exception as e:
+                logging.warning('Failed to connect: {}'.format(e))
+                self.close()
+                return None
 
-        try:
-            if not self.open:
-                await asyncio.wait_for(self._connect(), timeout=0.25)
-            self.reconnecting = False
-        except asyncio.TimeoutError:
-            if not self.reconnecting:
-                logging.error('Connecting to {}:{} timed out.'.format(
-                              self.ip, self.port))
-            self.reconnecting = True
-            return None
-        except Exception as e:
-            logging.warning('Failed to connect: {}'.format(e))
-            self.close()
-            return None
-
-        try:
-            self.connection['writer'].write(command.encode())
-            future = self.connection['reader'].readuntil(b'\r')
-            line = await asyncio.wait_for(future, timeout=0.25)
-            result = line.decode().strip()
-            self.timeouts = 0
-        except asyncio.TimeoutError:
-            self.timeouts += 1
-            if self.timeouts == self.max_timeouts:
-                logging.error('Reading Alicat from {}:{} timed out {} times.'
-                              .format(self.ip, self.port, self.max_timeouts))
-            result = None
-        except Exception as e:
-            logging.warning('Failed to connect: {}'.format(e))
-            self.close()
-            result = None
-        self.waiting = False
+            try:
+                self.connection['writer'].write(command.encode())
+                future = self.connection['reader'].readuntil(b'\r')
+                line = await asyncio.wait_for(future, timeout=0.25)
+                result = line.decode().strip()
+                self.timeouts = 0
+            except asyncio.TimeoutError:
+                self.timeouts += 1
+                if self.timeouts == self.max_timeouts:
+                    logging.error('Reading Alicat from {}:{} timed out {} times.'
+                                  .format(self.ip, self.port, self.max_timeouts))
+                result = None
+            except Exception as e:
+                logging.warning('Failed to connect: {}'.format(e))
+                self.close()
+                result = None
         return result
 
 
@@ -166,23 +168,25 @@ class FlowController(FlowMeter):
     [Reference](http://www.alicat.com/products/mass-flow-meters-and-
     controllers/mass-flow-controllers/).
 
-    This communicates with the flow controller over a USB or RS-232/RS-485
-    connection using pyserial.
+    This communicates with the flow controller over a TCP bridge such as the
+    [StarTech Device Server](https://www.startech.com/Networking-IO/
+    Serial-over-IP/4-Port-Serial-Ethernet-Device-Server-with-PoE~NETRS42348PD).
 
     To set up your Alicat flow controller, power on the device and make sure
-    that the "Input" option is set to "Serial".
+    that the "Setpoint Source" option is set to "Serial".
     """
 
     registers = {'flow': 0b00100101, 'pressure': 0b00100010}
 
-    def __init__(self, port='/dev/ttyUSB0', address='A'):
-        """Connect this driver with the appropriate USB / serial port.
+    def __init__(self, ip, port, address='A'):
+        """Initialize the device client.
 
         Args:
-            port: The serial port. Default '/dev/ttyUSB0'.
+            ip: IP address of the device server
+            port: Port of the device server
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
-        FlowMeter.__init__(self, port, address)
+        FlowMeter.__init__(self, ip, port, address)
 
         async def f():
             try:
@@ -293,7 +297,7 @@ def command_line(args):
     import json
     from time import time
 
-    ip, port = args.port[6:].split(':')
+    ip, port = args.port[6:].split(':')  # strip 'tcp://'
     port = int(port)
     flow_controller = FlowController(ip, port, args.address)
 
