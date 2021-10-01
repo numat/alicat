@@ -188,13 +188,9 @@ class FlowController(FlowMeter):
         """
         FlowMeter.__init__(self, ip, port, address)
 
-        async def f():
-            try:
-                self.control_point = await self._get_control_point()
-            except Exception:
-                pass
         self.control_point = 'unknown'
-        asyncio.ensure_future(f())
+        asyncio.ensure_future(self._get_control_point())
+        self.init_lock = asyncio.Lock()
 
     async def get(self):
         """Get the current state of the flow controller.
@@ -264,15 +260,20 @@ class FlowController(FlowMeter):
 
     async def _get_control_point(self):
         """Get the control point, and save to internal variable."""
-        command = '{addr}R122\r'.format(addr=self.address)
-        line = await self._write_and_read(command)
-        if not line:
-            return None
-        value = int(line.split('=')[-1])
-        try:
-            return next(p for p, r in self.registers.items() if value == r)
-        except StopIteration:
-            raise ValueError("Unexpected register value: {:d}".format(value))
+        async with self.init_lock:
+            command = '{addr}R122\r'.format(addr=self.address)
+            line = await self._write_and_read(command)
+            if not line:
+                return None
+            if '=' not in line:
+                raise ValueError(f'Received reply {line} intended for another request. '
+                                 f'Are there simultaneous connections?')
+            value = int(line.split('=')[-1])
+            try:
+                self.control_point = next(p for p, r in self.registers.items() if value == r)
+                return self.control_point
+            except StopIteration:
+                raise ValueError("Unexpected register value: {:d}".format(value))
 
     async def _set_control_point(self, point):
         """Set whether to control on mass flow or pressure.
@@ -285,7 +286,9 @@ class FlowController(FlowMeter):
         reg = self.registers[point]
         command = '{addr}W122={reg:d}\r'.format(addr=self.address, reg=reg)
         line = await self._write_and_read(command)
-
+        if '=' not in line:
+            raise ValueError(f'Received reply {line} intended for another request. '
+                             f'Are there simultaneous connections?')
         value = int(line.split('=')[-1])
         if value != reg:
             raise IOError("Could not set control point.")
@@ -307,9 +310,11 @@ def command_line(args):
         if args.set_flow_rate is not None and args.set_pressure is not None:
             raise ValueError("Cannot set both flow rate and pressure.")
         if args.set_flow_rate is not None:
-            flow_controller.set_flow_rate(args.set_flow_rate)
+            async with flow_controller.init_lock:  # make sure _get_control_point has finished
+                await flow_controller.set_flow_rate(args.set_flow_rate)
         if args.set_pressure is not None:
-            flow_controller.set_pressure(args.set_pressure)
+            async with flow_controller.init_lock:
+                await flow_controller.set_pressure(args.set_pressure)
         state = await flow_controller.get()
         if args.stream:
             print('time\t' + '\t'.join(flow_controller.keys))
