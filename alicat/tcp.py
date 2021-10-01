@@ -189,8 +189,8 @@ class FlowController(FlowMeter):
         FlowMeter.__init__(self, ip, port, address)
 
         self.control_point = 'unknown'
-        asyncio.ensure_future(self._get_control_point())
         self.init_lock = asyncio.Lock()
+        asyncio.ensure_future(self._get_control_point())
 
     async def get(self):
         """Get the current state of the flow controller.
