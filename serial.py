@@ -374,7 +374,6 @@ class FlowController(FlowMeter):
 
     To set up your Alicat flow controller, power on the device and make sure
     that the "Input" option is set to "Serial".
-
     """
 
     registers = {'mass flow': 0b00100101, 'vol flow': 0b00100100, 'abs pressure': 0b00100010,
