@@ -8,7 +8,6 @@ try:
 except ImportError:
     pass
 
-
 class FlowMeter(object):
     """Python driver for Alicat Flow Meters.
 
@@ -125,6 +124,8 @@ class FlowMeter(object):
             del self.keys[-2]
         elif len(values) == 7 and len(self.keys) == 6:
             self.keys.insert(5, 'total flow')
+        elif len(values) == 2 and len(self.keys) == 6:
+            self.keys.insert(1, 'setpoint')
         return {k: (v if k == self.keys[-1] else float(v))
                 for k, v in zip(self.keys, values)}
 
@@ -373,10 +374,10 @@ class FlowController(FlowMeter):
 
     To set up your Alicat flow controller, power on the device and make sure
     that the "Input" option is set to "Serial".
-
     """
 
-    registers = {'flow': 0b00100101, 'pressure': 0b00100010}
+    registers = {'mass flow': 0b00100101, 'vol flow': 0b00100100, 'abs pressure': 0b00100010,
+                 'gauge pressure': 0b00100110, 'diff pressure': 0b00100111}
 
     def __init__(self, port='/dev/ttyUSB0', address='A'):
         """Connect this driver with the appropriate USB / serial port.
@@ -422,9 +423,11 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        if self.control_point is not None and self.control_point != 'flow':
+        if any([self.control_point is not None and self.control_point == 'abs pressure',
+                self.control_point is not None and self.control_point == 'gauge pressure',
+                self.control_point is not None and self.control_point == 'diff pressure']):
             self._set_setpoint(0, retries)
-            self._set_control_point('flow', retries)
+            self._set_control_point('mass flow', retries)git 
         self._set_setpoint(flow, retries)
 
     def set_pressure(self, pressure, retries=2):
@@ -434,9 +437,10 @@ class FlowController(FlowMeter):
             pressure: The target pressure, in units specified at time of
                 purchase. Likely in psia.
         """
-        if self.control_point is not None and self.control_point != 'pressure':
+        if any([self.control_point is not None and self.control_point == 'mass flow',
+                self.control_point is not None and self.control_point == 'vol flow']):
             self._set_setpoint(0, retries)
-            self._set_control_point('pressure', retries)
+            self._set_control_point('abs pressure', retries)
         self._set_setpoint(pressure, retries)
 
     def hold(self, retries=2):
@@ -543,12 +547,10 @@ class FlowController(FlowMeter):
         command = '{addr}S{setpoint:.2f}\r'.format(addr=self.address,
                                                    setpoint=setpoint)
         line = self._write_and_read(command, retries)
-
         try:
             current = float(line.split()[5])
         except IndexError:
             current = None
-
         if current is not None and abs(current - setpoint) > 0.01:
             raise IOError("Could not set setpoint.")
 
