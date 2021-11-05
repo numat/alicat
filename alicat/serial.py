@@ -427,7 +427,7 @@ class FlowController(FlowMeter):
                 self.control_point is not None and self.control_point == 'gauge pressure',
                 self.control_point is not None and self.control_point == 'diff pressure']):
             self._set_setpoint(0, retries)
-            self._set_control_point('mass flow', retries)git 
+            self._set_control_point('mass flow', retries)
         self._set_setpoint(flow, retries)
 
     def set_pressure(self, pressure, retries=2):
