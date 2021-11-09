@@ -26,13 +26,7 @@ Installation
 ============
 
 ```
-pip install alicat
-```
-
-If you don't like pip, you can also install from source:
-
-```
-git clone https://github.com/numat/alicat.git
+git clone https://github.com/marinapalese/alicat.git
 cd alicat
 python setup.py install
 ```
