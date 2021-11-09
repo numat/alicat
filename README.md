@@ -19,7 +19,7 @@ Example Connections
    * Good for newer computers and maker boards such as Raspberry Pis.
  * Cables routed through a [TCP device server](https://www.amazon.com/gp/product/B00I5EYB2Q) (`tcp://192.168.1.100:4000`, requires python >3.4).
     * Good in conjunction with PLCs for professional-looking control boxes.
- * Multiple cables connected to one port via a [splitter](https://www.amazon.com/gp/product/B007F2E188) and Alicat's addressing (`A`-`D`).
+ * Multiple cables connected to one port via a [splitter](https://www.amazon.com/gp/product/B007F2E188) and Alicat's addressing (`A`-`Z`).
     * Good when number of ports is limited.
 
 Installation
