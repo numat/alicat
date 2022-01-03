@@ -24,9 +24,12 @@ Example Connections
 
 Installation
 ============
-
 ```
-git clone https://github.com/marinapalese/alicat.git
+pip install alicat
+```
+If you don't like pip, you can also install from source:
+```
+git clone https://github.com/numat/alicat.git
 cd alicat
 python setup.py install
 ```
@@ -74,15 +77,15 @@ You can also set the gas type and flow rate / pressure.
 
 ```python
 flow_controller.set_gas('N2')
-flow_controller.set_gas(8)         # Optionally set a gas by it's number; find the full gas table on page 52 of the Alicat manual.
+flow_controller.set_gas(8)         # Optionally set a gas by its number; find the full gas table in the Alicat manual.
 flow_controller.set_flow_rate(1.0)
 flow_controller.set_pressure(20)
 ```
 
-For firmwave 5v and greater, create and set gas mixes using COMPOSER software loaded into the device. Mixes can contain up to five gases, and are stored in gas indices 236-255. 
+For firmware 5v and greater, create and set gas mixes using COMPOSER software loaded into the device. Mixes can contain up to five gases, and are stored in gas indices 236-255. 
 
 ```python
-flow_controller.create_mix(mix_no=236, name="Mix1", gas1="N2", percent1=50, gas2="Ar", percent2=50)
+flow_controller.create_mix(mix_no=236, name="Mix1", gases={'N2': 50, 'O2': 30, 'CO2': 20})
 flow_controller.set_gas(236)
 flow_controller.delete_mix(236)
 ```
