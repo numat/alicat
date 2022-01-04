@@ -206,22 +206,13 @@ class FlowMeter(object):
 
         read = '{addr}VE\r'.format(addr=self.address)
         firmware = self._write_and_read(read, retries)
-        if "2v" in firmware\
-                or "3v" in firmware\
-                or "4v" in firmware\
-                or "GP" in firmware:
+        if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise IOError("This unit does not support COMPOSER gas mixes.")
 
         if mix_no < 236 or mix_no > 255:
             raise ValueError("Mix number must be between 236-255!")
 
-        gas = [str(i) for i in gases.keys()]
-        percent = [str(i) for i in gases.values()]
-
-        total_percent = 0
-        for i in percent:
-            total_percent += int(i)
-
+        total_percent = sum(gases.values())
         if total_percent != 100:
             raise ValueError("Percentages of gas mix must add to 100%!")
 
