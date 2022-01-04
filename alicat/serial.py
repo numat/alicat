@@ -118,7 +118,6 @@ class FlowMeter(object):
         # Explicitly silenced because I find it redundant.
         while values[-1].upper() in ['MOV', 'VOV', 'POV']:
             del values[-1]
-        print(values)
         if address != self.address:
             raise ValueError("Flow controller address mismatch.")
         if len(values) == 5 and len(self.keys) == 6:
@@ -150,6 +149,10 @@ class FlowMeter(object):
             return self._set_gas_name(gas, retries)
 
     def _set_gas_number(self, number, retries):
+        """Set flow controller gas type by number.
+
+        See supported gases in 'FlowController.gases'.
+        """
         self._test_controller_open()
         command = '{addr}$${index}\r'.format(addr=self.address,
                                              index=number)
@@ -162,9 +165,12 @@ class FlowMeter(object):
 
         if number != reg46_gasbit:
             raise IOError("Cannot set gas.")
-        pass
 
     def _set_gas_name(self, name, retries):
+        """Set flow controller gas type by name.
+
+        See the Alicat manual for usage.
+        """
         self._test_controller_open()
         if name not in self.gases:
             raise ValueError("{} not supported!".format(gas))
@@ -405,12 +411,7 @@ class FlowController(FlowMeter):
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
-        if any([self.control_point is not None and
-                self.control_point == 'abs pressure',
-                self.control_point is not None and
-                self.control_point == 'gauge pressure',
-                self.control_point is not None and
-                self.control_point == 'diff pressure']):
+        if self.control_point in ['abs pressure', 'gauge pressure', 'diff pressure']:
             self._set_setpoint(0, retries)
             self._set_control_point('mass flow', retries)
         self._set_setpoint(flow, retries)
@@ -422,10 +423,7 @@ class FlowController(FlowMeter):
             pressure: The target pressure, in units specified at time of
                 purchase. Likely in psia.
         """
-        if any([self.control_point is not None and
-                self.control_point == 'mass flow',
-                self.control_point is not None and
-                self.control_point == 'vol flow']):
+        if self.control_point in ['mass flow', 'vol flow']:
             self._set_setpoint(0, retries)
             self._set_control_point('abs pressure', retries)
         self._set_setpoint(pressure, retries)
@@ -493,15 +491,13 @@ class FlowController(FlowMeter):
     def write_PID_P(self, p_value, retries=2):
         """Change P value for PID tuning."""
         self._test_controller_open()
-        value = p_value
-        command = '{addr}$$w21={v}\r'.format(addr=self.address, v=value)
+        command = '{addr}$$w21={v}\r'.format(addr=self.address, v=p_value)
         self._write_and_read(command, retries)
 
     def write_PID_D(self, d_value, retries=2):
         """Change D value for PID tuning."""
         self._test_controller_open()
-        value = d_value
-        command = '{addr}$$w22={v}\r'.format(addr=self.address, v=value)
+        command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d_value)
         self._write_and_read(command, retries)
 
     def write_PID_I(self, i_value, retries=2):
@@ -510,8 +506,7 @@ class FlowController(FlowMeter):
         Only used in PD2I loop type.
         """
         self._test_controller_open()
-        value = i_value
-        command = '{addr}$$w23={v}\r'.format(addr=self.address, v=value)
+        command = '{addr}$$w23={v}\r'.format(addr=self.address, v=i_value)
         self._write_and_read(command, retries)
 
     def _set_setpoint(self, setpoint, retries=2):
