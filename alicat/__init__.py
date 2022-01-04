@@ -18,7 +18,7 @@ def command_line():
                         "'/dev/ttyUSB0'. Use e.g. 'tcp://192.168.1.100:4000 "
                         "to read devices routed through a converter.")
     parser.add_argument('--address', '-a', default='A', type=str, help="The "
-                        "device address, A-D. Should only be used if multiple "
+                        "device address, A-Z. Should only be used if multiple "
                         "flow controllers are connected to one port or if"
                         "device ID is not A.")
     parser.add_argument('--set-gas', '-g', default=None, type=str,
