@@ -6,7 +6,7 @@ with open('README.md', 'r') as in_file:
 
 setup(
     name="alicat",
-    version="0.3.1",
+    version="0.4.0",
     description="Python driver for Alicat mass flow controllers.",
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -16,7 +16,7 @@ setup(
     packages=["alicat"],
     install_requires=["pyserial"],
     entry_points={
-        "console_scripts": [("alicat = alicat:command_line")]
+        "console_scripts": [("alicat = alicat:run")]
     },
     license="GPLv2",
     classifiers=[
@@ -25,8 +25,6 @@ setup(
         "Natural Language :: English",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 2",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
-        "Topic :: Scientific/Engineering :: Electronic Design Automation (EDA)"
     ]
 )

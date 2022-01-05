@@ -3,20 +3,17 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
 """
-from alicat.serial import FlowMeter, FlowController  # noqa
+from alicat.serial import FlowMeter, FlowController, command_line  # noqa
 
 
-def command_line():
+def run():
     """CLI interface, accessible when installed through pip."""
     import argparse
-    import sys
 
     parser = argparse.ArgumentParser(description="Control an Alicat mass "
                                      "flow controller from the command line.")
     parser.add_argument('port', nargs='?', default='/dev/ttyUSB0', help="The "
-                        "target serial port or TCP address. Default "
-                        "'/dev/ttyUSB0'. Use e.g. 'tcp://192.168.1.100:4000 "
-                        "to read devices routed through a converter.")
+                        "target serial port. Default '/dev/ttyUSB0'.")
     parser.add_argument('--address', '-a', default='A', type=str, help="The "
                         "device address, A-Z. Should only be used if multiple "
                         "flow controllers are connected to one port or if"
@@ -48,15 +45,8 @@ def command_line():
                         help="Reset current value of totalizer to zero.")
     args = parser.parse_args()
 
-    if args.port.startswith('tcp://'):
-        if sys.version_info < (3, 5):
-            sys.stderr.write("TCP communication requires python >=3.5\n")
-            return
-        from alicat.tcp import command_line
-    else:
-        from alicat.serial import command_line
     command_line(args)
 
 
 if __name__ == '__main__':
-    command_line()
+    run()

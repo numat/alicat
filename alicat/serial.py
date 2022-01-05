@@ -3,10 +3,7 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
 """
-try:
-    import serial
-except ImportError:
-    pass
+import serial
 
 
 class FlowMeter(object):
@@ -173,7 +170,7 @@ class FlowMeter(object):
         """
         self._test_controller_open()
         if name not in self.gases:
-            raise ValueError("{} not supported!".format(gas))
+            raise ValueError(f"{name} not supported!")
         command = '{addr}$${gas}\r'.format(
             addr=self.address,
             gas=self.gases.index(name)
@@ -187,7 +184,6 @@ class FlowMeter(object):
 
         if self.gases.index(name) != reg46_gasbit:
             raise IOError("Cannot set gas.")
-        pass
 
     def create_mix(self, mix_no, name, gases, retries=2):
         """Create a gas mix.
@@ -275,7 +271,7 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to tare flow.")
 
-    def reset_tot(self, retries=2):
+    def reset_totalizer(self, retries=2):
         """Reset the totalizer."""
         self._test_controller_open()
         command = '{addr}T\r'.format(addr=self.address)
@@ -436,7 +432,7 @@ class FlowController(FlowMeter):
         command = '{addr}$$C\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def read_PID(self, retries=2):
+    def get_pid(self, retries=2):
         """Read the current PID values on the controller.
 
         Values include the loop type, P value, D value, and I value.
@@ -460,45 +456,39 @@ class FlowController(FlowMeter):
             value_spl = value.split()
             pid_values.append(value_spl[3])
 
-        result = {k: (v if k == self.pid_keys[-1] else str(v))
-                  for k, v in zip(self.pid_keys, pid_values)}
+        return {k: (v if k == self.pid_keys[-1] else str(v))
+                for k, v in zip(self.pid_keys, pid_values)}
 
-        return result
+    def set_pid(self, p=None, i=None, d=None, loop_type=None, retries=2):
+        """Set specified PID parameters.
 
-    def write_PID_looptype(self, looptype, retries=2):
-        """Change the PID loop from PD/PDF to PD2I and vice versa.
+        Args:
+            p: Proportional gain
+            i: Integral gain. Only used in PD2I loop type.
+            d: Derivative gain
+            loop_type: Algorithm option, either 'PD/PDF' or 'PD2I'
 
-        Done by changing the appropriate bits in register 85.
+        This communication works by writing Alicat registers directly.
         """
         self._test_controller_open()
-
-        command = '{addr}$$w85={loop_num}\r'.format(
-            addr=self.address,
-            loop_num=['', 'PD/PDF', 'PD2I'].index(looptype)
-        )
-
-        self._write_and_read(command, retries)
-
-    def write_PID_P(self, p_value, retries=2):
-        """Change P value for PID tuning."""
-        self._test_controller_open()
-        command = '{addr}$$w21={v}\r'.format(addr=self.address, v=p_value)
-        self._write_and_read(command, retries)
-
-    def write_PID_D(self, d_value, retries=2):
-        """Change D value for PID tuning."""
-        self._test_controller_open()
-        command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d_value)
-        self._write_and_read(command, retries)
-
-    def write_PID_I(self, i_value, retries=2):
-        """Change I value for PID tuning.
-
-        Only used in PD2I loop type.
-        """
-        self._test_controller_open()
-        command = '{addr}$$w23={v}\r'.format(addr=self.address, v=i_value)
-        self._write_and_read(command, retries)
+        if loop_type is not None:
+            options = ['PD/PDF', 'PD2I']
+            if loop_type not in options:
+                raise ValueError(f'Loop type must be {options[0]} or {options[1]}.')
+            command = '{addr}$$w85={loop_num}\r'.format(
+                addr=self.address,
+                loop_num=options.index(loop_type) + 1
+            )
+            self._write_and_read(command, retries)
+        if p is not None:
+            command = '{addr}$$w21={v}\r'.format(addr=self.address, v=p)
+            self._write_and_read(command, retries)
+        if i is not None:
+            command = '{addr}$$w23={v}\r'.format(addr=self.address, v=i)
+            self._write_and_read(command, retries)
+        if d is not None:
+            command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d)
+            self._write_and_read(command, retries)
 
     def _set_setpoint(self, setpoint, retries=2):
         """Set the target setpoint.
@@ -572,7 +562,7 @@ def command_line(args):
     if args.cancel_hold:
         flow_controller.cancel_hold()
     if args.reset_totalizer:
-        flow_controller.reset_tot()
+        flow_controller.reset_totalizer()
     state = flow_controller.get()
     if args.stream:
         try:
