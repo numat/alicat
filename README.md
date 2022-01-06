@@ -94,7 +94,7 @@ For flow controllers, read and write PID loop settings for device tuning.
 
 ```python
 flow_controller.set_pid(p=4000, i=4000, d=10, loop_type='PD2I')
-print(flow_controller.get_PID())
+print(flow_controller.get_pid())
 {
     'loop_type': 'PD2I',
     'P': '4000',
@@ -112,7 +112,7 @@ flow_controller.lock()            # Lock the front display.
 flow_controller.unlock()          # Unlock the front display.
 flow_controller.hold()            # Hold the valve in its current position.
 flow_controller.cancel_hold()     # Cancel the valve hold.
-flow_controller.tare_volumetric() # Tare volumetric hold.
+flow_controller.tare_volumetric() # Tare volumetric flow.
 flow_controller.tare_pressure()   # Tare pressure.
 flow_controller.reset_totalizer() # Reset totalizer, if totalizer functionality included.
 ```
