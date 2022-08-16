@@ -10,7 +10,7 @@ setup(
     description="Python driver for Alicat mass flow controllers.",
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url="http://github.com/numat/alicat/",
+    url="https://github.com/numat/alicat/",
     author="Patrick Fuller",
     author_email="pat@numat-tech.com",
     packages=["alicat"],
