@@ -3,7 +3,7 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
 """
-from alicat.serial import FlowMeter, FlowController, command_line  # noqa
+from alicat.serial import FlowController, FlowMeter, command_line  # noqa
 
 
 def run():

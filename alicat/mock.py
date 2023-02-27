@@ -1,6 +1,6 @@
 """Mock for offline testing of `FlowController`s."""
 
-from random import random, choice
+from random import choice, random
 from time import sleep
 from unittest.mock import MagicMock
 
