@@ -3,6 +3,8 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2019 NuMat Technologies
 """
+from typing import Dict
+
 import serial
 
 
@@ -18,7 +20,7 @@ class FlowMeter(object):
 
     # A dictionary that maps port names to a tuple of connection
     # objects and the refcounts
-    open_ports = {}
+    open_ports: Dict[int, tuple] = {}
 
     def __init__(self, port='/dev/ttyUSB0', address='A'):
         """Connect this driver with the appropriate USB / serial port.
