@@ -50,7 +50,7 @@ class FlowMeter(object):
         self.open = True
 
     @classmethod
-    def is_connected(cls, port, address='A'):
+    def is_connected(cls, port, address='A') -> bool:
         """Return True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
@@ -77,7 +77,7 @@ class FlowMeter(object):
             pass
         return is_device
 
-    def _test_controller_open(self):
+    def _test_controller_open(self) -> None:
         """Raise an IOError if the FlowMeter has been closed.
 
         Does nothing if the meter is open and good for read/write
@@ -89,7 +89,7 @@ class FlowMeter(object):
                           port {} is not open".format(self.address,
                                                       self.port))
 
-    def get(self, retries=2):
+    def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -187,7 +187,7 @@ class FlowMeter(object):
         if self.gases.index(name) != reg46_gasbit:
             raise IOError("Cannot set gas.")
 
-    def create_mix(self, mix_no, name, gases, retries=2):
+    def create_mix(self, mix_no, name, gases, retries=2) -> None:
         """Create a gas mix.
 
         Gas mixes are made using COMPOSER software.
@@ -232,7 +232,7 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to create mix.")
 
-    def delete_mix(self, mix_no, retries=2):
+    def delete_mix(self, mix_no, retries=2) -> None:
         """Delete a gas mix."""
         self._test_controller_open()
         command = "{addr}GD{mixNumber}\r".format(addr=self.address,
@@ -242,19 +242,19 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to delete mix.")
 
-    def lock(self, retries=2):
+    def lock(self, retries=2) -> None:
         """Lock the display."""
         self._test_controller_open()
         command = '{addr}$$L\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def unlock(self, retries=2):
+    def unlock(self, retries=2) -> None:
         """Unlock the display."""
         self._test_controller_open()
         command = '{addr}$$U\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def tare_pressure(self, retries=2):
+    def tare_pressure(self, retries=2) -> None:
         """Tare the pressure."""
         self._test_controller_open()
 
@@ -264,7 +264,7 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to tare pressure.")
 
-    def tare_volumetric(self, retries=2):
+    def tare_volumetric(self, retries=2) -> None:
         """Tare volumetric flow."""
         self._test_controller_open()
         command = '{addr}$$V\r'.format(addr=self.address)
@@ -273,13 +273,13 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to tare flow.")
 
-    def reset_totalizer(self, retries=2):
+    def reset_totalizer(self, retries=2) -> None:
         """Reset the totalizer."""
         self._test_controller_open()
         command = '{addr}T\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def flush(self):
+    def flush(self) -> None:
         """Read all available information. Use to clear queue."""
         self._test_controller_open()
 
@@ -287,7 +287,7 @@ class FlowMeter(object):
         self.connection.flushInput()
         self.connection.flushOutput()
 
-    def close(self):
+    def close(self) -> None:
         """Close the flow meter. Call this on program termination.
 
         Also closes the serial port if no other FlowMeter object has
@@ -307,7 +307,7 @@ class FlowMeter(object):
 
         self.open = False
 
-    def _write_and_read(self, command, retries=2):
+    def _write_and_read(self, command, retries=2) -> str:
         """Write a command and reads a response from the flow controller."""
         self._test_controller_open()
 
@@ -319,7 +319,7 @@ class FlowMeter(object):
         else:
             raise IOError("Could not read from flow controller.")
 
-    def _readline(self):
+    def _readline(self) -> str:
         """Read a line using a custom newline character (CR in this case).
 
         Function from http://stackoverflow.com/questions/16470903/
@@ -369,7 +369,7 @@ class FlowController(FlowMeter):
         except Exception:
             self.control_point = None
 
-    def get(self, retries=2):
+    def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -394,7 +394,7 @@ class FlowController(FlowMeter):
         state['control_point'] = self.control_point
         return state
 
-    def set_flow_rate(self, flow, retries=2):
+    def set_flow_rate(self, flow, retries=2) -> None:
         """Set the target flow rate.
 
         Args:
@@ -405,7 +405,7 @@ class FlowController(FlowMeter):
             self._set_control_point('mass flow', retries)
         self._set_setpoint(flow, retries)
 
-    def set_pressure(self, pressure, retries=2):
+    def set_pressure(self, pressure, retries=2) -> None:
         """Set the target pressure.
 
         Args:
@@ -417,7 +417,7 @@ class FlowController(FlowMeter):
             self._set_control_point('abs pressure', retries)
         self._set_setpoint(pressure, retries)
 
-    def hold(self, retries=2):
+    def hold(self, retries=2) -> None:
         """Override command to issue a valve hold.
 
         For a single valve controller, hold the valve at the present value.
@@ -428,13 +428,13 @@ class FlowController(FlowMeter):
         command = '{addr}$$H\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def cancel_hold(self, retries=2):
+    def cancel_hold(self, retries=2) -> None:
         """Cancel valve hold."""
         self._test_controller_open()
         command = '{addr}$$C\r'.format(addr=self.address)
         self._write_and_read(command, retries)
 
-    def get_pid(self, retries=2):
+    def get_pid(self, retries=2) -> dict:
         """Read the current PID values on the controller.
 
         Values include the loop type, P value, D value, and I value.
@@ -461,7 +461,7 @@ class FlowController(FlowMeter):
         return {k: (v if k == self.pid_keys[-1] else str(v))
                 for k, v in zip(self.pid_keys, pid_values)}
 
-    def set_pid(self, p=None, i=None, d=None, loop_type=None, retries=2):
+    def set_pid(self, p=None, i=None, d=None, loop_type=None, retries=2) -> None:
         """Set specified PID parameters.
 
         Args:
@@ -492,7 +492,7 @@ class FlowController(FlowMeter):
             command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d)
             self._write_and_read(command, retries)
 
-    def _set_setpoint(self, setpoint, retries=2):
+    def _set_setpoint(self, setpoint, retries=2) -> None:
         """Set the target setpoint.
 
         Called by `set_flow_rate` and `set_pressure`, which both use the same
@@ -522,7 +522,7 @@ class FlowController(FlowMeter):
         except StopIteration:
             raise ValueError("Unexpected register value: {:d}".format(value))
 
-    def _set_control_point(self, point, retries=2):
+    def _set_control_point(self, point, retries=2) -> None:
         """Set whether to control on mass flow or pressure.
 
         Args:
