@@ -15,10 +15,10 @@ def command_line():
 
     parser = argparse.ArgumentParser(description="Control an Alicat mass "
                                      "flow controller from the command line.")
-    parser.add_argument('port', nargs='?', default='/dev/ttyUSB0', help="The "
-                        "target serial port. Default '/dev/ttyUSB0'.")
-    parser.add_argument('--address', '-a', default='A', type=str, help="The "
-                        "device address, A-Z. Should only be used if multiple "
+    parser.add_argument('address', nargs='?', default='/dev/ttyUSB0', help="The "
+                        "target serial port (or TCP address:port). Default '/dev/ttyUSB0'.")
+    parser.add_argument('--unit', '-u', default='A', type=str, help="The "
+                        "device unit ID, A-Z. Should only be used if multiple "
                         "flow controllers are connected to one port or if"
                         "device ID is not A.")
     parser.add_argument('--set-gas', '-g', default=None, type=str,
@@ -38,7 +38,7 @@ def command_line():
                              "data, formatted as a tab-separated table.")
     parser.add_argument("--lock", "-l", action="store_true",
                         help="Locks device display.")
-    parser.add_argument("--unlock", "-u", action="store_true",
+    parser.add_argument("--unlock", "-ul", action="store_true",
                         help="Unlocks device display.")
     parser.add_argument("--hold", "-hd", action="store_true",
                         help="Holds the valve at the present value.")
@@ -49,7 +49,7 @@ def command_line():
     args = parser.parse_args()
 
     async def get(args=None):
-        async with FlowController(port=args.port, address=args.address) as flow_controller:
+        async with FlowController(address=args.address, unit=args.unit) as flow_controller:
             if args.set_gas:
                 await flow_controller.set_gas(args.set_gas)
             if args.set_flow_rate is not None and args.set_pressure is not None:

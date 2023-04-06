@@ -5,7 +5,7 @@ Copyright (C) 2023 NuMat Technologies
 """
 from typing import Dict
 
-from .util import Client, SerialClient
+from .util import Client, SerialClient, TcpClient
 
 
 class FlowMeter:
@@ -22,18 +22,19 @@ class FlowMeter:
     # objects and the refcounts
     open_ports: Dict[int, tuple] = {}
 
-    def __init__(self, port='/dev/ttyUSB0', address='A'):
+    def __init__(self, address='/dev/ttyUSB0', unit='A', **kwargs):
         """Connect this driver with the appropriate USB / serial port.
 
         Args:
-            port: The serial port. Default '/dev/ttyUSB0'.
-            address: The Alicat-specified address, A-Z. Default 'A'.
+            address: The serial port or TCP address:port. Default '/dev/ttyUSB0'.
+            unit: The Alicat-specified unit ID, A-Z. Default 'A'.
         """
-        self.address = address
-        self.port = port
+        if address.startswith('/dev') or address.startswith('COM'):  # serial
+            self.hw: Client = SerialClient(address=address, **kwargs)
+        else:
+            self.hw = TcpClient(address=address, **kwargs)
 
-        self.hw: Client = SerialClient(address=port)
-
+        self.unit = unit
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
         self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
@@ -53,7 +54,7 @@ class FlowMeter:
         return
 
     @classmethod
-    async def is_connected(cls, port, address='A') -> bool:
+    async def is_connected(cls, port, unit='A') -> bool:
         """Return True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
@@ -64,7 +65,7 @@ class FlowMeter:
         """
         is_device = False
         try:
-            device = cls(port, address)
+            device = cls(port, unit)
             try:
                 c = await device.get()
                 if cls.__name__ == 'FlowMeter':
@@ -88,9 +89,9 @@ class FlowMeter:
         has been closed by the FlowMeter.close method.
         """
         if not self.open:
-            raise IOError("The FlowController with address {} and \
-                          port {} is not open".format(self.address,
-                                                      self.port))
+            raise IOError("The FlowMeter with unit ID {} and \
+                          port {} is not open".format(self.unit,
+                                                      self.hw.address))
 
     async def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
@@ -111,17 +112,17 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        command = '{addr}\r'.format(addr=self.address)
+        command = '{unit}\r'.format(unit=self.unit)
         line = await self._write_and_read(command, retries)
         spl = line.split()
-        address, values = spl[0], spl[1:]
+        unit, values = spl[0], spl[1:]
 
         # Mass/volume over range error.
         # Explicitly silenced because I find it redundant.
         while values[-1].upper() in ['MOV', 'VOV', 'POV']:
             del values[-1]
-        if address != self.address:
-            raise ValueError("Flow controller address mismatch.")
+        if unit != self.unit:
+            raise ValueError("Flow controller unit ID mismatch.")
         if len(values) == 5 and len(self.keys) == 6:
             del self.keys[-2]
         elif len(values) == 7 and len(self.keys) == 6:
@@ -156,12 +157,12 @@ class FlowMeter:
         See supported gases in 'FlowController.gases'.
         """
         self._test_controller_open()
-        command = '{addr}$${index}\r'.format(addr=self.address,
+        command = '{unit}$${index}\r'.format(unit=self.unit,
                                              index=number)
         await self._write_and_read(command, retries)
 
-        reg46 = await self._write_and_read('{addr}$$R46\r'.format(
-            addr=self.address
+        reg46 = await self._write_and_read('{unit}$$R46\r'.format(
+            unit=self.unit
         ), retries)
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
@@ -176,14 +177,14 @@ class FlowMeter:
         self._test_controller_open()
         if name not in self.gases:
             raise ValueError(f"{name} not supported!")
-        command = '{addr}$${gas}\r'.format(
-            addr=self.address,
+        command = '{unit}$${gas}\r'.format(
+            unit=self.unit,
             gas=self.gases.index(name)
         )
         await self._write_and_read(command, retries)
 
-        reg46 = await self._write_and_read('{addr}$$R46\r'.format(
-            addr=self.address
+        reg46 = await self._write_and_read('{unit}$$R46\r'.format(
+            unit=self.unit
         ), retries)
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
@@ -205,7 +206,7 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        read = '{addr}VE\r'.format(addr=self.address)
+        read = '{unit}VE\r'.format(unit=self.unit)
         firmware = await self._write_and_read(read, retries)
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise IOError("This unit does not support COMPOSER gas mixes.")
@@ -223,7 +224,7 @@ class FlowMeter:
         gas_list = ' '.join(
             [' '.join([str(percent), str(self.gases.index(gas))])
                 for gas, percent in gases.items()])
-        command = ' '.join([self.address,
+        command = ' '.join([self.unit,
                             'GM',
                             name,
                             str(mix_no),
@@ -238,7 +239,7 @@ class FlowMeter:
     async def delete_mix(self, mix_no, retries=2) -> None:
         """Delete a gas mix."""
         self._test_controller_open()
-        command = "{addr}GD{mixNumber}\r".format(addr=self.address,
+        command = "{unit}GD{mixNumber}\r".format(unit=self.unit,
                                                  mixNumber=mix_no)
         line = await self._write_and_read(command, retries)
 
@@ -248,20 +249,20 @@ class FlowMeter:
     async def lock(self, retries=2) -> None:
         """Lock the display."""
         self._test_controller_open()
-        command = '{addr}$$L\r'.format(addr=self.address)
+        command = '{unit}$$L\r'.format(unit=self.unit)
         await self._write_and_read(command, retries)
 
     async def unlock(self, retries=2) -> None:
         """Unlock the display."""
         self._test_controller_open()
-        command = '{addr}$$U\r'.format(addr=self.address)
+        command = '{unit}$$U\r'.format(unit=self.unit)
         await self._write_and_read(command, retries)
 
     async def tare_pressure(self, retries=2) -> None:
         """Tare the pressure."""
         self._test_controller_open()
 
-        command = '{addr}$$PC\r'.format(addr=self.address)
+        command = '{unit}$$PC\r'.format(unit=self.unit)
         line = self._write_and_read(command, retries)
 
         if line == '?':
@@ -270,7 +271,7 @@ class FlowMeter:
     async def tare_volumetric(self, retries=2) -> None:
         """Tare volumetric flow."""
         self._test_controller_open()
-        command = '{addr}$$V\r'.format(addr=self.address)
+        command = '{unit}$$V\r'.format(unit=self.unit)
         line = await self._write_and_read(command, retries)
 
         if line == '?':
@@ -279,7 +280,7 @@ class FlowMeter:
     async def reset_totalizer(self, retries=2) -> None:
         """Reset the totalizer."""
         self._test_controller_open()
-        command = '{addr}T\r'.format(addr=self.address)
+        command = '{unit}T\r'.format(unit=self.unit)
         await self._write_and_read(command, retries)
 
     async def flush(self) -> None:
@@ -342,14 +343,14 @@ class FlowController(FlowMeter):
                  'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
                  'diff pressure': 0b00100111}
 
-    def __init__(self, port='/dev/ttyUSB0', address='A'):
+    def __init__(self, address='/dev/ttyUSB0', unit='A'):
         """Connect this driver with the appropriate USB / serial port.
 
         Args:
-            port: The serial port. Default '/dev/ttyUSB0'.
-            address: The Alicat-specified address, A-Z. Default 'A'.
+            address: The serial port or TCP address:port. Default '/dev/ttyUSB0'.
+            unit: The Alicat-specified unit ID, A-Z. Default 'A'.
         """
-        FlowMeter.__init__(self, port, address)
+        FlowMeter.__init__(self, address, unit)
         # try:
         #     self.control_point = self._get_control_point()
         # except Exception:
@@ -412,13 +413,13 @@ class FlowController(FlowMeter):
         For a dual valve pressure controller, close both valves.
         """
         self._test_controller_open()
-        command = '{addr}$$H\r'.format(addr=self.address)
+        command = '{unit}$$H\r'.format(unit=self.unit)
         await self._write_and_read(command, retries)
 
     async def cancel_hold(self, retries=2) -> None:
         """Cancel valve hold."""
         self._test_controller_open()
-        command = '{addr}$$C\r'.format(addr=self.address)
+        command = '{unit}$$C\r'.format(unit=self.unit)
         await self._write_and_read(command, retries)
 
     async def get_pid(self, retries=2) -> dict:
@@ -431,7 +432,7 @@ class FlowController(FlowMeter):
 
         self.pid_keys = ['loop_type', 'P', 'D', 'I']
 
-        command = '{addr}$$r85\r'.format(addr=self.address)
+        command = '{unit}$$r85\r'.format(unit=self.unit)
         read_loop_type = await self._write_and_read(command, retries)
         spl = read_loop_type.split()
 
@@ -440,7 +441,7 @@ class FlowController(FlowMeter):
         pid_values = [loop_type]
         for register in range(21, 24):
             value = await self._write_and_read('{}$$r{}\r'.format(
-                self.address,
+                self.unit,
                 register))
             value_spl = value.split()
             pid_values.append(value_spl[3])
@@ -464,19 +465,19 @@ class FlowController(FlowMeter):
             options = ['PD/PDF', 'PD2I']
             if loop_type not in options:
                 raise ValueError(f'Loop type must be {options[0]} or {options[1]}.')
-            command = '{addr}$$w85={loop_num}\r'.format(
-                addr=self.address,
+            command = '{unit}$$w85={loop_num}\r'.format(
+                unit=self.unit,
                 loop_num=options.index(loop_type) + 1
             )
             await self._write_and_read(command, retries)
         if p is not None:
-            command = '{addr}$$w21={v}\r'.format(addr=self.address, v=p)
+            command = '{unit}$$w21={v}\r'.format(unit=self.unit, v=p)
             await self._write_and_read(command, retries)
         if i is not None:
-            command = '{addr}$$w23={v}\r'.format(addr=self.address, v=i)
+            command = '{unit}$$w23={v}\r'.format(unit=self.unit, v=i)
             await self._write_and_read(command, retries)
         if d is not None:
-            command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d)
+            command = '{unit}$$w22={v}\r'.format(unit=self.unit, v=d)
             await self._write_and_read(command, retries)
 
     async def _set_setpoint(self, setpoint, retries=2) -> None:
@@ -487,7 +488,7 @@ class FlowController(FlowMeter):
         """
         self._test_controller_open()
 
-        command = '{addr}S{setpoint:.2f}\r'.format(addr=self.address,
+        command = '{unit}S{setpoint:.2f}\r'.format(unit=self.unit,
                                                    setpoint=setpoint)
         line = await self._write_and_read(command, retries)
         try:
@@ -499,7 +500,7 @@ class FlowController(FlowMeter):
 
     async def _get_control_point(self, retries=2):
         """Get the control point, and save to internal variable."""
-        command = '{addr}R122\r'.format(addr=self.address)
+        command = '{unit}R122\r'.format(unit=self.unit)
         line = await self._write_and_read(command, retries)
         if not line:
             return None
@@ -518,7 +519,7 @@ class FlowController(FlowMeter):
         if point not in self.registers:
             raise ValueError("Control point must be 'flow' or 'pressure'.")
         reg = self.registers[point]
-        command = '{addr}W122={reg:d}\r'.format(addr=self.address, reg=reg)
+        command = '{unit}W122={reg:d}\r'.format(unit=self.unit, reg=reg)
         line = await self._write_and_read(command, retries)
 
         value = int(line.split('=')[-1])
