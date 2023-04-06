@@ -14,7 +14,7 @@ class FlowController(MagicMock):
         self.setpoint = 10
         self.gas = 'N2'
 
-    def get(self):
+    async def get(self):
         """Get the current state of the flow controller."""
         sleep(random() * 0.25)
         return {
@@ -28,25 +28,25 @@ class FlowController(MagicMock):
             'volumetric_flow': 0.0,
         }
 
-    def _set_setpoint(self, setpoint):
+    async def _set_setpoint(self, setpoint):
         self.setpoint = setpoint
 
-    def _set_control_point(self, control_point):
+    async def _set_control_point(self, control_point):
         self.control_point = control_point
 
-    def _get_control_point(self):
+    async def _get_control_point(self):
         return self.control_point
 
-    def set_flow_rate(self, flowrate):
+    async def set_flow_rate(self, flowrate):
         """Set the target setpoint."""
-        self._set_control_point('flow')
-        self._set_setpoint(flowrate)
+        await self._set_control_point('flow')
+        await self._set_setpoint(flowrate)
 
-    def set_gas(self, gas):
+    async def set_gas(self, gas):
         """Set the gas type."""
         self.gas = gas
 
-    def set_pressure(self, pressure):
+    async def set_pressure(self, pressure):
         """Set the target pressure."""
-        self._set_control_point('pressure')
-        self._set_setpoint(pressure)
+        await self._set_control_point('pressure')
+        await self._set_setpoint(pressure)

@@ -1,14 +1,14 @@
 """Python driver for Alicat mass flow controllers, using serial communication.
 
 Distributed under the GNU General Public License v2
-Copyright (C) 2019 NuMat Technologies
+Copyright (C) 2023 NuMat Technologies
 """
 from typing import Dict
 
-import serial
+from .util import Client, SerialClient
 
 
-class FlowMeter(object):
+class FlowMeter:
     """Python driver for Alicat Flow Meters.
 
     [Reference](http://www.alicat.com/
@@ -32,12 +32,7 @@ class FlowMeter(object):
         self.address = address
         self.port = port
 
-        if port in FlowMeter.open_ports:
-            self.connection, refcount = FlowMeter.open_ports[port]
-            FlowMeter.open_ports[port] = (self.connection, refcount + 1)
-        else:
-            self.connection = serial.Serial(port, 19200, timeout=1.0)
-            FlowMeter.open_ports[port] = (self.connection, 1)
+        self.hw: Client = SerialClient(address=port)
 
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
@@ -49,8 +44,16 @@ class FlowMeter(object):
 
         self.open = True
 
+    async def __aenter__(self, *args):
+        """Provide async enter to context manager."""
+        return self
+
+    async def __aexit__(self, *args):
+        """Provide async exit to context manager."""
+        return
+
     @classmethod
-    def is_connected(cls, port, address='A') -> bool:
+    async def is_connected(cls, port, address='A') -> bool:
         """Return True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
@@ -63,7 +66,7 @@ class FlowMeter(object):
         try:
             device = cls(port, address)
             try:
-                c = device.get()
+                c = await device.get()
                 if cls.__name__ == 'FlowMeter':
                     assert c and 'setpoint' not in device.keys
                 elif cls.__name__ == 'FlowController':
@@ -72,7 +75,7 @@ class FlowMeter(object):
                     raise NotImplementedError('Must be meter or controller.')
                 is_device = True
             finally:
-                device.close()
+                await device.close()
         except Exception:
             pass
         return is_device
@@ -89,7 +92,7 @@ class FlowMeter(object):
                           port {} is not open".format(self.address,
                                                       self.port))
 
-    def get(self, retries=2) -> dict:
+    async def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -109,7 +112,7 @@ class FlowMeter(object):
         self._test_controller_open()
 
         command = '{addr}\r'.format(addr=self.address)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
         spl = line.split()
         address, values = spl[0], spl[1:]
 
@@ -128,7 +131,7 @@ class FlowMeter(object):
         return {k: (v if k == self.keys[-1] or isinstance(v, str) else float(v))
                 for k, v in zip(self.keys, values)}
 
-    def set_gas(self, gas, retries=2):
+    async def set_gas(self, gas, retries=2):
         """Set the gas type.
 
         Args:
@@ -143,11 +146,11 @@ class FlowMeter(object):
         self._test_controller_open()
 
         if isinstance(gas, int):
-            return self._set_gas_number(gas, retries)
+            return await self._set_gas_number(gas, retries)
         else:
-            return self._set_gas_name(gas, retries)
+            return await self._set_gas_name(gas, retries)
 
-    def _set_gas_number(self, number, retries):
+    async def _set_gas_number(self, number, retries):
         """Set flow controller gas type by number.
 
         See supported gases in 'FlowController.gases'.
@@ -155,9 +158,9 @@ class FlowMeter(object):
         self._test_controller_open()
         command = '{addr}$${index}\r'.format(addr=self.address,
                                              index=number)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-        reg46 = self._write_and_read('{addr}$$R46\r'.format(
+        reg46 = await self._write_and_read('{addr}$$R46\r'.format(
             addr=self.address
         ), retries)
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
@@ -165,7 +168,7 @@ class FlowMeter(object):
         if number != reg46_gasbit:
             raise IOError("Cannot set gas.")
 
-    def _set_gas_name(self, name, retries):
+    async def _set_gas_name(self, name, retries):
         """Set flow controller gas type by name.
 
         See the Alicat manual for usage.
@@ -177,9 +180,9 @@ class FlowMeter(object):
             addr=self.address,
             gas=self.gases.index(name)
         )
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-        reg46 = self._write_and_read('{addr}$$R46\r'.format(
+        reg46 = await self._write_and_read('{addr}$$R46\r'.format(
             addr=self.address
         ), retries)
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
@@ -187,7 +190,7 @@ class FlowMeter(object):
         if self.gases.index(name) != reg46_gasbit:
             raise IOError("Cannot set gas.")
 
-    def create_mix(self, mix_no, name, gases, retries=2) -> None:
+    async def create_mix(self, mix_no, name, gases, retries=2) -> None:
         """Create a gas mix.
 
         Gas mixes are made using COMPOSER software.
@@ -203,7 +206,7 @@ class FlowMeter(object):
         self._test_controller_open()
 
         read = '{addr}VE\r'.format(addr=self.address)
-        firmware = self._write_and_read(read, retries)
+        firmware = await self._write_and_read(read, retries)
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise IOError("This unit does not support COMPOSER gas mixes.")
 
@@ -226,35 +229,35 @@ class FlowMeter(object):
                             str(mix_no),
                             gas_list]) + '\r'
 
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
 
         # If a gas mix is not successfully created, ? is returned.
         if line == '?':
             raise IOError("Unable to create mix.")
 
-    def delete_mix(self, mix_no, retries=2) -> None:
+    async def delete_mix(self, mix_no, retries=2) -> None:
         """Delete a gas mix."""
         self._test_controller_open()
         command = "{addr}GD{mixNumber}\r".format(addr=self.address,
                                                  mixNumber=mix_no)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
 
         if line == '?':
             raise IOError("Unable to delete mix.")
 
-    def lock(self, retries=2) -> None:
+    async def lock(self, retries=2) -> None:
         """Lock the display."""
         self._test_controller_open()
         command = '{addr}$$L\r'.format(addr=self.address)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-    def unlock(self, retries=2) -> None:
+    async def unlock(self, retries=2) -> None:
         """Unlock the display."""
         self._test_controller_open()
         command = '{addr}$$U\r'.format(addr=self.address)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-    def tare_pressure(self, retries=2) -> None:
+    async def tare_pressure(self, retries=2) -> None:
         """Tare the pressure."""
         self._test_controller_open()
 
@@ -264,30 +267,28 @@ class FlowMeter(object):
         if line == '?':
             raise IOError("Unable to tare pressure.")
 
-    def tare_volumetric(self, retries=2) -> None:
+    async def tare_volumetric(self, retries=2) -> None:
         """Tare volumetric flow."""
         self._test_controller_open()
         command = '{addr}$$V\r'.format(addr=self.address)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
 
         if line == '?':
             raise IOError("Unable to tare flow.")
 
-    def reset_totalizer(self, retries=2) -> None:
+    async def reset_totalizer(self, retries=2) -> None:
         """Reset the totalizer."""
         self._test_controller_open()
         command = '{addr}T\r'.format(addr=self.address)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-    def flush(self) -> None:
+    async def flush(self) -> None:
         """Read all available information. Use to clear queue."""
         self._test_controller_open()
 
-        self.connection.flush()
-        self.connection.flushInput()
-        self.connection.flushOutput()
+        await self.hw._clear()
 
-    def close(self) -> None:
+    async def close(self) -> None:
         """Close the flow meter. Call this on program termination.
 
         Also closes the serial port if no other FlowMeter object has
@@ -296,47 +297,32 @@ class FlowMeter(object):
         if not self.open:
             return
 
-        self.flush()
+        await self.flush()
 
-        if FlowMeter.open_ports[self.port][1] <= 1:
-            self.connection.close()
-            del FlowMeter.open_ports[self.port]
-        else:
-            connection, refcount = FlowMeter.open_ports[self.port]
-            FlowMeter.open_ports[self.port] = (connection, refcount - 1)
+        self.hw.close
 
         self.open = False
 
-    def _write_and_read(self, command, retries=2) -> str:
+    async def _write_and_read(self, command, retries=2) -> str:
         """Write a command and reads a response from the flow controller."""
         self._test_controller_open()
 
         for _ in range(retries + 1):
-            self.connection.write(command.encode('ascii'))
-            line = self._readline()
+            await self.hw._write(command)
+            line = await self._readline()
             if line:
                 return line
         else:
             raise IOError("Could not read from flow controller.")
 
-    def _readline(self) -> str:
+    async def _readline(self) -> str:
         """Read a line using a custom newline character (CR in this case).
 
         Function from http://stackoverflow.com/questions/16470903/
         pyserial-2-6-specify-end-of-line-in-readline
         """
         self._test_controller_open()
-
-        line = bytearray()
-        while True:
-            c = self.connection.read(1)
-            if c:
-                line += c
-                if line[-1] == ord('\r'):
-                    break
-            else:
-                break
-        return line.decode('ascii').strip()
+        return await self.hw._readline()
 
 
 class FlowController(FlowMeter):
@@ -364,12 +350,13 @@ class FlowController(FlowMeter):
             address: The Alicat-specified address, A-Z. Default 'A'.
         """
         FlowMeter.__init__(self, port, address)
-        try:
-            self.control_point = self._get_control_point()
-        except Exception:
-            self.control_point = None
+        # try:
+        #     self.control_point = self._get_control_point()
+        # except Exception:
+        #     self.control_point = None
+        self.control_point = None
 
-    def get(self, retries=2) -> dict:
+    async def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
 
         From the Alicat mass flow controller documentation, this data is:
@@ -388,24 +375,24 @@ class FlowController(FlowMeter):
             The state of the flow controller, as a dictionary.
 
         """
-        state = FlowMeter.get(self, retries)
+        state = await FlowMeter.get(self, retries)
         if state is None:
             return None
         state['control_point'] = self.control_point
         return state
 
-    def set_flow_rate(self, flow, retries=2) -> None:
+    async def set_flow_rate(self, flow, retries=2) -> None:
         """Set the target flow rate.
 
         Args:
             flow: The target flow rate, in units specified at time of purchase
         """
         if self.control_point in ['abs pressure', 'gauge pressure', 'diff pressure']:
-            self._set_setpoint(0, retries)
-            self._set_control_point('mass flow', retries)
-        self._set_setpoint(flow, retries)
+            await self._set_setpoint(0, retries)
+            await self._set_control_point('mass flow', retries)
+        await self._set_setpoint(flow, retries)
 
-    def set_pressure(self, pressure, retries=2) -> None:
+    async def set_pressure(self, pressure, retries=2) -> None:
         """Set the target pressure.
 
         Args:
@@ -413,11 +400,11 @@ class FlowController(FlowMeter):
                 purchase. Likely in psia.
         """
         if self.control_point in ['mass flow', 'vol flow']:
-            self._set_setpoint(0, retries)
-            self._set_control_point('abs pressure', retries)
-        self._set_setpoint(pressure, retries)
+            await self._set_setpoint(0, retries)
+            await self._set_control_point('abs pressure', retries)
+        await self._set_setpoint(pressure, retries)
 
-    def hold(self, retries=2) -> None:
+    async def hold(self, retries=2) -> None:
         """Override command to issue a valve hold.
 
         For a single valve controller, hold the valve at the present value.
@@ -426,15 +413,15 @@ class FlowController(FlowMeter):
         """
         self._test_controller_open()
         command = '{addr}$$H\r'.format(addr=self.address)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-    def cancel_hold(self, retries=2) -> None:
+    async def cancel_hold(self, retries=2) -> None:
         """Cancel valve hold."""
         self._test_controller_open()
         command = '{addr}$$C\r'.format(addr=self.address)
-        self._write_and_read(command, retries)
+        await self._write_and_read(command, retries)
 
-    def get_pid(self, retries=2) -> dict:
+    async def get_pid(self, retries=2) -> dict:
         """Read the current PID values on the controller.
 
         Values include the loop type, P value, D value, and I value.
@@ -445,14 +432,14 @@ class FlowController(FlowMeter):
         self.pid_keys = ['loop_type', 'P', 'D', 'I']
 
         command = '{addr}$$r85\r'.format(addr=self.address)
-        read_loop_type = self._write_and_read(command, retries)
+        read_loop_type = await self._write_and_read(command, retries)
         spl = read_loop_type.split()
 
         loopnum = int(spl[3])
         loop_type = ['PD/PDF', 'PD/PDF', 'PD2I'][loopnum]
         pid_values = [loop_type]
         for register in range(21, 24):
-            value = self._write_and_read('{}$$r{}\r'.format(
+            value = await self._write_and_read('{}$$r{}\r'.format(
                 self.address,
                 register))
             value_spl = value.split()
@@ -461,7 +448,7 @@ class FlowController(FlowMeter):
         return {k: (v if k == self.pid_keys[-1] else str(v))
                 for k, v in zip(self.pid_keys, pid_values)}
 
-    def set_pid(self, p=None, i=None, d=None, loop_type=None, retries=2) -> None:
+    async def set_pid(self, p=None, i=None, d=None, loop_type=None, retries=2) -> None:
         """Set specified PID parameters.
 
         Args:
@@ -481,18 +468,18 @@ class FlowController(FlowMeter):
                 addr=self.address,
                 loop_num=options.index(loop_type) + 1
             )
-            self._write_and_read(command, retries)
+            await self._write_and_read(command, retries)
         if p is not None:
             command = '{addr}$$w21={v}\r'.format(addr=self.address, v=p)
-            self._write_and_read(command, retries)
+            await self._write_and_read(command, retries)
         if i is not None:
             command = '{addr}$$w23={v}\r'.format(addr=self.address, v=i)
-            self._write_and_read(command, retries)
+            await self._write_and_read(command, retries)
         if d is not None:
             command = '{addr}$$w22={v}\r'.format(addr=self.address, v=d)
-            self._write_and_read(command, retries)
+            await self._write_and_read(command, retries)
 
-    def _set_setpoint(self, setpoint, retries=2) -> None:
+    async def _set_setpoint(self, setpoint, retries=2) -> None:
         """Set the target setpoint.
 
         Called by `set_flow_rate` and `set_pressure`, which both use the same
@@ -502,7 +489,7 @@ class FlowController(FlowMeter):
 
         command = '{addr}S{setpoint:.2f}\r'.format(addr=self.address,
                                                    setpoint=setpoint)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
         try:
             current = float(line.split()[5])
         except IndexError:
@@ -510,10 +497,10 @@ class FlowController(FlowMeter):
         if current is not None and abs(current - setpoint) > 0.01:
             raise IOError("Could not set setpoint.")
 
-    def _get_control_point(self, retries=2):
+    async def _get_control_point(self, retries=2):
         """Get the control point, and save to internal variable."""
         command = '{addr}R122\r'.format(addr=self.address)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
         if not line:
             return None
         value = int(line.split('=')[-1])
@@ -522,7 +509,7 @@ class FlowController(FlowMeter):
         except StopIteration:
             raise ValueError("Unexpected register value: {:d}".format(value))
 
-    def _set_control_point(self, point, retries=2) -> None:
+    async def _set_control_point(self, point, retries=2) -> None:
         """Set whether to control on mass flow or pressure.
 
         Args:
@@ -532,52 +519,9 @@ class FlowController(FlowMeter):
             raise ValueError("Control point must be 'flow' or 'pressure'.")
         reg = self.registers[point]
         command = '{addr}W122={reg:d}\r'.format(addr=self.address, reg=reg)
-        line = self._write_and_read(command, retries)
+        line = await self._write_and_read(command, retries)
 
         value = int(line.split('=')[-1])
         if value != reg:
             raise IOError("Could not set control point.")
         self.control_point = point
-
-
-def command_line(args):
-    """CLI interface, accessible when installed through pip."""
-    import json
-    from time import time
-
-    flow_controller = FlowController(port=args.port, address=args.address)
-
-    if args.set_gas:
-        flow_controller.set_gas(args.set_gas)
-    if args.set_flow_rate is not None and args.set_pressure is not None:
-        raise ValueError("Cannot set both flow rate and pressure.")
-    if args.set_flow_rate is not None:
-        flow_controller.set_flow_rate(args.set_flow_rate)
-    if args.set_pressure is not None:
-        flow_controller.set_pressure(args.set_pressure)
-    if args.lock:
-        flow_controller.lock()
-    if args.unlock:
-        flow_controller.unlock()
-    if args.hold:
-        flow_controller.hold()
-    if args.cancel_hold:
-        flow_controller.cancel_hold()
-    if args.reset_totalizer:
-        flow_controller.reset_totalizer()
-    state = flow_controller.get()
-    if args.stream:
-        try:
-            print('time\t' + '\t'.join(flow_controller.keys))
-            t0 = time()
-            while True:
-                state = flow_controller.get()
-                print('{:.2f}\t'.format(time() - t0) +
-                      '\t\t'.join('{:.2f}'.format(state[key])
-                                  for key in flow_controller.keys[:-1]) +
-                      '\t\t' + state['gas'])
-        except KeyboardInterrupt:
-            pass
-    else:
-        print(json.dumps(state, indent=2, sort_keys=True))
-    flow_controller.close()

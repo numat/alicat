@@ -16,7 +16,7 @@ setup(
     packages=["alicat"],
     install_requires=["pyserial"],
     entry_points={
-        "console_scripts": [("alicat = alicat:run")]
+        "console_scripts": [("alicat = alicat:command_line")]
     },
     license="GPLv2",
     classifiers=[
