@@ -300,8 +300,6 @@ class FlowMeter:
         if not self.open:
             return
 
-        await self.flush()
-
         self.hw.close
 
         self.open = False
