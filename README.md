@@ -146,4 +146,4 @@ await flow_controller_2.close()
 - Rename `-u` to `-ul` (for `--unlock`)
 
 `0.4.1`
-Remove TCP support.
+Remove TCP support.  Use `pip install alicat==0.3.1` if needed

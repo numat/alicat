@@ -15,7 +15,7 @@ class FlowMeter:
     products/mass-flow-meters-and-controllers/mass-flow-meters/).
 
     This communicates with the flow meter over a USB or RS-232/RS-485
-    connection using pyserial.
+    connection using pyserial, or an Ethernet <-> serial converter.
     """
 
     # A dictionary that maps port names to a tuple of connection
