@@ -1,0 +1,17 @@
+line-length = 120
+ignore = [
+    "PLR2004",
+    "D104",
+    "D107",
+    "C901",
+]
+exclude = ["venv*"]
+select = ["C", "E", "F", "UP", "YTT", "PT", "W"]
+# "SIM" flake-simplify
+# "ARG" flake8-unused args
+# "B" bandit
+# "I" isort conflicts with isort config
+# "RUF" ruff base config
+target-version = "py38"
+[pydocstyle]
+convention = "pep257"

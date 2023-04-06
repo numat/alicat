@@ -15,6 +15,13 @@ setup(
     author_email="pat@numat-tech.com",
     packages=["alicat"],
     install_requires=["pyserial"],
+    extras_require={
+            'test': [
+                'ruff==0.0.261',
+                'mypy==1.0.1',
+                'types-pyserial',
+            ],
+        },
     entry_points={
         "console_scripts": [("alicat = alicat:command_line")]
     },
