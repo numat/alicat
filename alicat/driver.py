@@ -112,7 +112,7 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        command = '{unit}\r'.format(unit=self.unit)
+        command = f'{self.unit}\r'
         line = await self._write_and_read(command, retries)
         spl = line.split()
         unit, values = spl[0], spl[1:]
@@ -206,7 +206,7 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        read = '{unit}VE\r'.format(unit=self.unit)
+        read = f'{self.unit}VE\r'
         firmware = await self._write_and_read(read, retries)
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise IOError("This unit does not support COMPOSER gas mixes.")
@@ -249,20 +249,20 @@ class FlowMeter:
     async def lock(self, retries=2) -> None:
         """Lock the display."""
         self._test_controller_open()
-        command = '{unit}$$L\r'.format(unit=self.unit)
+        command = f'{self.unit}$$L\r'
         await self._write_and_read(command, retries)
 
     async def unlock(self, retries=2) -> None:
         """Unlock the display."""
         self._test_controller_open()
-        command = '{unit}$$U\r'.format(unit=self.unit)
+        command = f'{self.unit}$$U\r'
         await self._write_and_read(command, retries)
 
     async def tare_pressure(self, retries=2) -> None:
         """Tare the pressure."""
         self._test_controller_open()
 
-        command = '{unit}$$PC\r'.format(unit=self.unit)
+        command = f'{self.unit}$$PC\r'
         line = self._write_and_read(command, retries)
 
         if line == '?':
@@ -271,7 +271,7 @@ class FlowMeter:
     async def tare_volumetric(self, retries=2) -> None:
         """Tare volumetric flow."""
         self._test_controller_open()
-        command = '{unit}$$V\r'.format(unit=self.unit)
+        command = f'{self.unit}$$V\r'
         line = await self._write_and_read(command, retries)
 
         if line == '?':
@@ -280,7 +280,7 @@ class FlowMeter:
     async def reset_totalizer(self, retries=2) -> None:
         """Reset the totalizer."""
         self._test_controller_open()
-        command = '{unit}T\r'.format(unit=self.unit)
+        command = f'{self.unit}T\r'
         await self._write_and_read(command, retries)
 
     async def flush(self) -> None:
@@ -413,13 +413,13 @@ class FlowController(FlowMeter):
         For a dual valve pressure controller, close both valves.
         """
         self._test_controller_open()
-        command = '{unit}$$H\r'.format(unit=self.unit)
+        command = f'{self.unit}$$H\r'
         await self._write_and_read(command, retries)
 
     async def cancel_hold(self, retries=2) -> None:
         """Cancel valve hold."""
         self._test_controller_open()
-        command = '{unit}$$C\r'.format(unit=self.unit)
+        command = f'{self.unit}$$C\r'
         await self._write_and_read(command, retries)
 
     async def get_pid(self, retries=2) -> dict:
@@ -432,7 +432,7 @@ class FlowController(FlowMeter):
 
         self.pid_keys = ['loop_type', 'P', 'D', 'I']
 
-        command = '{unit}$$r85\r'.format(unit=self.unit)
+        command = f'{self.unit}$$r85\r'
         read_loop_type = await self._write_and_read(command, retries)
         spl = read_loop_type.split()
 
@@ -471,13 +471,13 @@ class FlowController(FlowMeter):
             )
             await self._write_and_read(command, retries)
         if p is not None:
-            command = '{unit}$$w21={v}\r'.format(unit=self.unit, v=p)
+            command = f'{self.unit}$$w21={p}\r'
             await self._write_and_read(command, retries)
         if i is not None:
-            command = '{unit}$$w23={v}\r'.format(unit=self.unit, v=i)
+            command = f'{self.unit}$$w23={i}\r'
             await self._write_and_read(command, retries)
         if d is not None:
-            command = '{unit}$$w22={v}\r'.format(unit=self.unit, v=d)
+            command = f'{self.unit}$$w22={d}\r'
             await self._write_and_read(command, retries)
 
     async def _set_setpoint(self, setpoint, retries=2) -> None:
@@ -500,7 +500,7 @@ class FlowController(FlowMeter):
 
     async def _get_control_point(self, retries=2):
         """Get the control point, and save to internal variable."""
-        command = '{unit}R122\r'.format(unit=self.unit)
+        command = f'{self.unit}R122\r'
         line = await self._write_and_read(command, retries)
         if not line:
             return None
@@ -508,7 +508,7 @@ class FlowController(FlowMeter):
         try:
             return next(p for p, r in self.registers.items() if value == r)
         except StopIteration:
-            raise ValueError("Unexpected register value: {:d}".format(value))
+            raise ValueError(f"Unexpected register value: {value:d}")
 
     async def _set_control_point(self, point, retries=2) -> None:
         """Set whether to control on mass flow or pressure.
@@ -519,7 +519,7 @@ class FlowController(FlowMeter):
         if point not in self.registers:
             raise ValueError("Control point must be 'flow' or 'pressure'.")
         reg = self.registers[point]
-        command = '{unit}W122={reg:d}\r'.format(unit=self.unit, reg=reg)
+        command = f'{self.unit}W122={reg:d}\r'
         line = await self._write_and_read(command, retries)
 
         value = int(line.split('=')[-1])

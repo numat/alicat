@@ -75,8 +75,8 @@ def command_line():
                     t0 = time()
                     while True:
                         state = await flow_controller.get()
-                        print('{:.2f}\t'.format(time() - t0) +
-                              '\t\t'.join('{:.2f}'.format(state[key])
+                        print(f'{time() - t0:.2f}\t' +
+                              '\t\t'.join(f'{state[key]:.2f}'
                                           for key in flow_controller.keys[:-1]) +
                               '\t\t' + state['gas'])
                 except KeyboardInterrupt:
