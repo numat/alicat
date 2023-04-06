@@ -382,7 +382,7 @@ class FlowController(FlowMeter):
         state['control_point'] = self.control_point
         return state
 
-    async def set_flow_rate(self, flow, retries=2) -> None:
+    async def set_flow_rate(self, flowrate, retries=2) -> None:
         """Set the target flow rate.
 
         Args:
@@ -391,7 +391,7 @@ class FlowController(FlowMeter):
         if self.control_point in ['abs pressure', 'gauge pressure', 'diff pressure']:
             await self._set_setpoint(0, retries)
             await self._set_control_point('mass flow', retries)
-        await self._set_setpoint(flow, retries)
+        await self._set_setpoint(flowrate, retries)
 
     async def set_pressure(self, pressure, retries=2) -> None:
         """Set the target pressure.

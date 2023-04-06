@@ -2,14 +2,16 @@
 
 from random import choice, random
 from time import sleep
-from unittest.mock import MagicMock
+
+from .driver import FlowController as RealFlowController
 
 
-class FlowController(MagicMock):
+class FlowController(RealFlowController):
     """Mocks an Alicat MFC for offline testing."""
 
     def __init__(self, *args, **kwargs):
         """Initialize the device client."""
+        super().__init__(*args, **kwargs)
         self.controlpoint = choice(['flow', 'pressure'])
         self.setpoint = 10
         self.gas = 'N2'

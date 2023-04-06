@@ -6,16 +6,15 @@ Copyright (C) 2023 NuMat Technologies
 from alicat.driver import FlowController, FlowMeter  # noqa
 
 
-def command_line():
+def command_line(args=None):
     """CLI interface, accessible when installed through pip."""
     import argparse
     import asyncio
     import json
     from time import time
-
     parser = argparse.ArgumentParser(description="Control an Alicat mass "
                                      "flow controller from the command line.")
-    parser.add_argument('address', nargs='?', default='/dev/ttyUSB0', help="The "
+    parser.add_argument('address', type=str, default='/dev/ttyUSB0', help="The "
                         "target serial port (or TCP address:port). Default '/dev/ttyUSB0'.")
     parser.add_argument('--unit', '-u', default='A', type=str, help="The "
                         "device unit ID, A-Z. Should only be used if multiple "
@@ -46,9 +45,8 @@ def command_line():
                         help="Cancel valve hold.")
     parser.add_argument("--reset-totalizer", "-r", action="store_true",
                         help="Reset current value of totalizer to zero.")
-    args = parser.parse_args()
-
-    async def get(args=None):
+    args = parser.parse_args(args)
+    async def get():
         async with FlowController(address=args.address, unit=args.unit) as flow_controller:
             if args.set_gas:
                 await flow_controller.set_gas(args.set_gas)
@@ -85,7 +83,7 @@ def command_line():
                 print(json.dumps(state, indent=2, sort_keys=True))
             await flow_controller.close()
 
-    asyncio.run(get(args))
+    asyncio.run(get())
 
 
 if __name__ == '__main__':
