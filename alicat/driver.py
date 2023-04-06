@@ -89,7 +89,7 @@ class FlowMeter:
         has been closed by the FlowMeter.close method.
         """
         if not self.open:
-            raise IOError("The FlowMeter with unit ID {} and \
+            raise OSError("The FlowMeter with unit ID {} and \
                           port {} is not open".format(self.unit,
                                                       self.hw.address))
 
@@ -167,7 +167,7 @@ class FlowMeter:
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if number != reg46_gasbit:
-            raise IOError("Cannot set gas.")
+            raise OSError("Cannot set gas.")
 
     async def _set_gas_name(self, name, retries):
         """Set flow controller gas type by name.
@@ -189,7 +189,7 @@ class FlowMeter:
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if self.gases.index(name) != reg46_gasbit:
-            raise IOError("Cannot set gas.")
+            raise OSError("Cannot set gas.")
 
     async def create_mix(self, mix_no, name, gases, retries=2) -> None:
         """Create a gas mix.
@@ -209,7 +209,7 @@ class FlowMeter:
         read = f'{self.unit}VE\r'
         firmware = await self._write_and_read(read, retries)
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
-            raise IOError("This unit does not support COMPOSER gas mixes.")
+            raise OSError("This unit does not support COMPOSER gas mixes.")
 
         if mix_no < 236 or mix_no > 255:
             raise ValueError("Mix number must be between 236-255!")
@@ -234,7 +234,7 @@ class FlowMeter:
 
         # If a gas mix is not successfully created, ? is returned.
         if line == '?':
-            raise IOError("Unable to create mix.")
+            raise OSError("Unable to create mix.")
 
     async def delete_mix(self, mix_no, retries=2) -> None:
         """Delete a gas mix."""
@@ -244,7 +244,7 @@ class FlowMeter:
         line = await self._write_and_read(command, retries)
 
         if line == '?':
-            raise IOError("Unable to delete mix.")
+            raise OSError("Unable to delete mix.")
 
     async def lock(self, retries=2) -> None:
         """Lock the display."""
@@ -266,7 +266,7 @@ class FlowMeter:
         line = self._write_and_read(command, retries)
 
         if line == '?':
-            raise IOError("Unable to tare pressure.")
+            raise OSError("Unable to tare pressure.")
 
     async def tare_volumetric(self, retries=2) -> None:
         """Tare volumetric flow."""
@@ -275,7 +275,7 @@ class FlowMeter:
         line = await self._write_and_read(command, retries)
 
         if line == '?':
-            raise IOError("Unable to tare flow.")
+            raise OSError("Unable to tare flow.")
 
     async def reset_totalizer(self, retries=2) -> None:
         """Reset the totalizer."""
@@ -314,7 +314,7 @@ class FlowMeter:
             if line:
                 return line
         else:
-            raise IOError("Could not read from flow controller.")
+            raise OSError("Could not read from flow controller.")
 
     async def _readline(self) -> str:
         """Read a line using a custom newline character (CR in this case).
@@ -496,7 +496,7 @@ class FlowController(FlowMeter):
         except IndexError:
             current = None
         if current is not None and abs(current - setpoint) > 0.01:
-            raise IOError("Could not set setpoint.")
+            raise OSError("Could not set setpoint.")
 
     async def _get_control_point(self, retries=2):
         """Get the control point, and save to internal variable."""
@@ -524,5 +524,5 @@ class FlowController(FlowMeter):
 
         value = int(line.split('=')[-1])
         if value != reg:
-            raise IOError("Could not set control point.")
+            raise OSError("Could not set control point.")
         self.control_point = point
