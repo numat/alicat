@@ -42,7 +42,6 @@ class FlowMeter:
                       'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
                       'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
                       'P-5']
-
         self.open = True
 
     async def __aenter__(self, *args):
@@ -125,6 +124,11 @@ class FlowMeter:
             del values[-1]
         if unit != self.unit:
             raise ValueError("Flow controller unit ID mismatch.")
+        if values[-1].upper() == 'LCK':
+            self.button_lock = True
+            del values[-1]
+        else:
+            self.button_lock = False
         if len(values) == 5 and len(self.keys) == 6:
             del self.keys[-2]
         elif len(values) == 7 and len(self.keys) == 6:
@@ -249,16 +253,21 @@ class FlowMeter:
             raise OSError("Unable to delete mix.")
 
     async def lock(self, retries=2) -> None:
-        """Lock the display."""
+        """Lock the buttons."""
         self._test_controller_open()
         command = f'{self.unit}$$L\r'
         await self._write_and_read(command, retries)
 
     async def unlock(self, retries=2) -> None:
-        """Unlock the display."""
+        """Unlock the buttons."""
         self._test_controller_open()
         command = f'{self.unit}$$U\r'
         await self._write_and_read(command, retries)
+
+    async def is_locked(self) -> bool:
+        """Return whether the buttons are locked."""
+        await self.get()
+        return self.button_lock
 
     async def tare_pressure(self, retries=2) -> None:
         """Tare the pressure."""

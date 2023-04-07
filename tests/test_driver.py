@@ -28,3 +28,12 @@ async def test_flow_setpoint_roundtrip():
         # assert flow_sp == await device.get_flow_rate()
         result = await device.get()
         assert flow_sp == result['setpoint']
+
+
+async def test_lock_unlock():
+    """Confirm that locking/unlocking the buttons works."""
+    async with FlowController(ADDRESS) as device:
+        await device.lock()
+        assert await device.is_locked()
+        await device.unlock()
+        assert not await device.is_locked()
