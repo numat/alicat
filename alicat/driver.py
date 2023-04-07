@@ -21,6 +21,11 @@ class FlowMeter:
     # A dictionary that maps port names to a tuple of connection
     # objects and the refcounts
     open_ports: Dict[int, tuple] = {}
+    gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
+             'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
+             'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
+             'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
+             'P-5']
 
     def __init__(self, address='/dev/ttyUSB0', unit='A', **kwargs):
         """Connect this driver with the appropriate USB / serial port.
@@ -37,11 +42,6 @@ class FlowMeter:
         self.unit = unit
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
-        self.gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
-                      'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
-                      'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
-                      'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
-                      'P-5']
         self.open = True
 
     async def __aenter__(self, *args):
@@ -158,42 +158,18 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        if isinstance(gas, int):
-            return await self._set_gas_number(gas)
+        if isinstance(gas, str):
+            if gas not in self.gases:
+                raise ValueError(f"{gas} not supported!")
+            gas_number = self.gases.index(gas)
         else:
-            return await self._set_gas_name(gas)
-
-    async def _set_gas_number(self, number):
-        """Set flow controller gas type by number.
-
-        See supported gases in 'FlowController.gases'.
-        """
-        self._test_controller_open()
-        command = f'{self.unit}$${number}'
+            gas_number = gas
+        command = f'{self.unit}$$W46={gas_number}'
         await self.hw._write_and_read(command)
-
         reg46 = await self.hw._write_and_read('f{self.unit}$$R46')
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
-        if number != reg46_gasbit:
-            raise OSError("Cannot set gas.")
-
-    async def _set_gas_name(self, name):
-        """Set flow controller gas type by name.
-
-        See the Alicat manual for usage.
-        """
-        self._test_controller_open()
-        if name not in self.gases:
-            raise ValueError(f"{name} not supported!")
-        gas=self.gases.index(name)
-        command = f'{self.unit}$${gas}'
-        await self.hw._write_and_read(command)
-
-        reg46 = await self.hw._write_and_read(f'{self.unit}$$R46')
-        reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
-
-        if self.gases.index(name) != reg46_gasbit:
+        if gas_number != reg46_gasbit:
             raise OSError("Cannot set gas.")
 
     async def create_mix(self, mix_no, name, gases) -> None:

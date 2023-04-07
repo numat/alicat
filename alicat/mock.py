@@ -57,6 +57,8 @@ class FlowController(RealFlowController):
 
     async def set_gas(self, gas):
         """Set the gas type."""
+        if type(gas) is int:
+            gas = self.gases[gas]
         self.state['gas'] = gas
 
     async def set_pressure(self, pressure):
