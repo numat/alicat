@@ -90,9 +90,8 @@ class FlowMeter:
         has been closed by the FlowMeter.close method.
         """
         if not self.open:
-            raise OSError("The FlowMeter with unit ID {} and \
-                          port {} is not open".format(self.unit,
-                                                      self.hw.address))
+            raise OSError(f"The FlowMeter with unit ID {self.unit} and "
+                           "port {self.hw.address} is not open")
 
     def _is_float(self, msg):
         try:
@@ -170,13 +169,10 @@ class FlowMeter:
         See supported gases in 'FlowController.gases'.
         """
         self._test_controller_open()
-        command = '{unit}$${index}'.format(unit=self.unit,
-                                             index=number)
+        command = f'{self.unit}$${number}'
         await self.hw._write_and_read(command)
 
-        reg46 = await self.hw._write_and_read('{unit}$$R46'.format(
-            unit=self.unit
-        ))
+        reg46 = await self.hw._write_and_read('f{self.unit}$$R46')
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if number != reg46_gasbit:
@@ -190,15 +186,11 @@ class FlowMeter:
         self._test_controller_open()
         if name not in self.gases:
             raise ValueError(f"{name} not supported!")
-        command = '{unit}$${gas}'.format(
-            unit=self.unit,
-            gas=self.gases.index(name)
-        )
+        gas=self.gases.index(name)
+        command = f'{self.unit}$${gas}'
         await self.hw._write_and_read(command)
 
-        reg46 = await self.hw._write_and_read('{unit}$$R46'.format(
-            unit=self.unit
-        ))
+        reg46 = await self.hw._write_and_read(f'{self.unit}$$R46')
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if self.gases.index(name) != reg46_gasbit:
@@ -252,8 +244,7 @@ class FlowMeter:
     async def delete_mix(self, mix_no) -> None:
         """Delete a gas mix."""
         self._test_controller_open()
-        command = "{unit}GD{mixNumber}".format(unit=self.unit,
-                                                 mixNumber=mix_no)
+        command = f'{self.unit}GD{mix_no}'
         line = await self.hw._write_and_read(command)
 
         if line == '?':
@@ -433,9 +424,7 @@ class FlowController(FlowMeter):
         loop_type = ['PD/PDF', 'PD/PDF', 'PD2I'][loopnum]
         pid_values = [loop_type]
         for register in range(21, 24):
-            value = await self.hw._write_and_read('{}$$r{}'.format(
-                self.unit,
-                register))
+            value = await self.hw._write_and_read(f'{self.unit}$$r{register}')
             value_spl = value.split()
             pid_values.append(value_spl[3])
 
@@ -458,10 +447,8 @@ class FlowController(FlowMeter):
             options = ['PD/PDF', 'PD2I']
             if loop_type not in options:
                 raise ValueError(f'Loop type must be {options[0]} or {options[1]}.')
-            command = '{unit}$$w85={loop_num}'.format(
-                unit=self.unit,
-                loop_num=options.index(loop_type) + 1
-            )
+            loop_num=options.index(loop_type) + 1
+            command = f'{self.unit}$$w85={loop_num}'
             await self.hw._write_and_read(command)
         if p is not None:
             command = f'{self.unit}$$w21={p}'
@@ -481,8 +468,7 @@ class FlowController(FlowMeter):
         """
         self._test_controller_open()
 
-        command = '{unit}S{setpoint:.2f}'.format(unit=self.unit,
-                                                   setpoint=setpoint)
+        command = f'{self.unit}S{setpoint:.2f}'
         line = await self.hw._write_and_read(command)
         try:
             current = float(line.split()[5])
