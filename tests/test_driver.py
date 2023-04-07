@@ -55,3 +55,10 @@ async def test_set_standard_gas_number(gas):
         await device.set_gas(gas[1])
         result = await device.get()
         assert gas[0] == result['gas']
+
+
+async def test_get_firmware():
+    """Confirm the firmware version can be read."""
+    async with FlowController(ADDRESS) as device:
+        result = await device.get_firmware()
+        assert 'v' in result or 'GP' in result

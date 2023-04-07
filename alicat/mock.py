@@ -36,6 +36,7 @@ class FlowController(RealFlowController):
         self.button_lock = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
+        self.firmware = '6v21.0-R22 Nov 30 2016,16:04:20'
 
     async def get(self):
         sleep(random() * 0.25)

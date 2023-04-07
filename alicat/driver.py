@@ -3,7 +3,7 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
-from typing import Dict
+from typing import Dict, Union
 
 from .util import Client, SerialClient, TcpClient
 
@@ -43,6 +43,7 @@ class FlowMeter:
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
         self.open = True
+        self.firmware: Union[str, None] = None
 
     async def __aenter__(self, *args):
         """Provide async enter to context manager."""
@@ -187,8 +188,7 @@ class FlowMeter:
         """
         self._test_controller_open()
 
-        read = f'{self.unit}VE'
-        firmware = await self.hw._write_and_read(read)
+        firmware = await self.get_firmware()
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise OSError("This unit does not support COMPOSER gas mixes.")
 
@@ -268,6 +268,14 @@ class FlowMeter:
         command = f'{self.unit}T'
         await self.hw._write_and_read(command)
 
+    async def get_firmware(self) -> str:
+        """Get the device firmware version."""
+        if self.firmware is None:
+            self._test_controller_open()
+            command = f'{self.unit}VE'
+            self.firmware = await self.hw._write_and_read(command)
+        return self.firmware
+
     async def flush(self) -> None:
         """Read all available information. Use to clear queue."""
         self._test_controller_open()
@@ -282,9 +290,7 @@ class FlowMeter:
         """
         if not self.open:
             return
-
         self.hw.close
-
         self.open = False
 
 
