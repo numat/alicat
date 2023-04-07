@@ -37,3 +37,21 @@ async def test_lock_unlock():
         assert await device.is_locked()
         await device.unlock()
         assert not await device.is_locked()
+
+
+@pytest.mark.parametrize('gas', ['Air', 'H2'])
+async def test_set_standard_gas_name(gas):
+    """Confirm that setting standard gases by name works."""
+    async with FlowController(ADDRESS) as device:
+        await device.set_gas(gas)
+        result = await device.get()
+        assert gas == result['gas']
+
+
+@pytest.mark.parametrize('gas', [('Air', 0), ('H2', 6)])
+async def test_set_standard_gas_number(gas):
+    """Confirm that setting standard gases by number works."""
+    async with FlowController(ADDRESS) as device:
+        await device.set_gas(gas[1])
+        result = await device.get()
+        assert gas[0] == result['gas']
