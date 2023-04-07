@@ -94,6 +94,13 @@ class FlowMeter:
                           port {} is not open".format(self.unit,
                                                       self.hw.address))
 
+    def _is_float(self, msg):
+        try:
+            float(msg)
+            return True
+        except ValueError:
+            return False
+
     async def get(self, retries=2) -> dict:
         """Get the current state of the flow controller.
 
@@ -135,7 +142,7 @@ class FlowMeter:
             self.keys.insert(5, 'total flow')
         elif len(values) == 2 and len(self.keys) == 6:
             self.keys.insert(1, 'setpoint')
-        return {k: (v if k == self.keys[-1] or isinstance(v, str) else float(v))
+        return {k: (float(v) if self._is_float(v) else v)
                 for k, v in zip(self.keys, values)}
 
     async def set_gas(self, gas, retries=2):
