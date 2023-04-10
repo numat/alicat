@@ -5,6 +5,7 @@ from unittest import mock
 import pytest
 
 from alicat import command_line
+
 # from alicat.driver import FlowController
 from alicat.mock import FlowController
 
