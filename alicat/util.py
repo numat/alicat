@@ -25,6 +25,7 @@ class Client:
         self.connection = {}
         self.reconnecting = False
         self.eol = b'\r'
+        self.lock = asyncio.Lock()
 
     @abstractmethod
     async def _write(self, message):
@@ -48,15 +49,16 @@ class Client:
         handle recovering from disconnects.
         """
         await self._handle_connection()
-        if self.open:
-            try:
-                response = await self._handle_communication(command)
-                return response
-            except asyncio.exceptions.IncompleteReadError:
-                logger.error('IncompleteReadError.  Are there multiple connections?')
+        async with self.lock:
+            if self.open:
+                try:
+                    response = await self._handle_communication(command)
+                    return response
+                except asyncio.exceptions.IncompleteReadError:
+                    logger.error('IncompleteReadError.  Are there multiple connections?')
+                    return None
+            else:
                 return None
-        else:
-            return None
 
     async def _clear(self):
         """Clear the reader stream when it has been corrupted from multiple connections."""
