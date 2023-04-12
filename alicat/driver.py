@@ -3,6 +3,7 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
+import asyncio
 from typing import Dict, Union
 
 from .util import Client, SerialClient, TcpClient
@@ -101,6 +102,12 @@ class FlowMeter:
         except ValueError:
             return False
 
+    async def _write_and_read(self, command):
+        """Wrap the communicator request, to call _test_controller_open() before any request
+        """
+        self._test_controller_open()
+        return await self.hw._write_and_read(command)
+
     async def get(self) -> dict:
         """Get the current state of the flow controller.
 
@@ -118,10 +125,8 @@ class FlowMeter:
             The state of the flow controller, as a dictionary.
 
         """
-        self._test_controller_open()
-
         command = f'{self.unit}'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
         spl = line.split()
         unit, values = spl[0], spl[1:]
 
@@ -166,8 +171,8 @@ class FlowMeter:
         else:
             gas_number = gas
         command = f'{self.unit}$$W46={gas_number}'
-        await self.hw._write_and_read(command)
-        reg46 = await self.hw._write_and_read('f{self.unit}$$R46')
+        await self._write_and_read(command)
+        reg46 = await self._write_and_read('f{self.unit}$$R46')
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if gas_number != reg46_gasbit:
@@ -186,8 +191,6 @@ class FlowMeter:
         gases: A dictionary of the gas by name along with the associated
         percentage in the mix.
         """
-        self._test_controller_open()
-
         firmware = await self.get_firmware()
         if any(v in firmware for v in ['2v', '3v', '4v', 'GP']):
             raise OSError("This unit does not support COMPOSER gas mixes.")
@@ -211,7 +214,7 @@ class FlowMeter:
                             str(mix_no),
                             gas_list])
 
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
 
         # If a gas mix is not successfully created, ? is returned.
         if line == '?':
@@ -219,24 +222,21 @@ class FlowMeter:
 
     async def delete_mix(self, mix_no) -> None:
         """Delete a gas mix."""
-        self._test_controller_open()
         command = f'{self.unit}GD{mix_no}'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
 
         if line == '?':
             raise OSError("Unable to delete mix.")
 
     async def lock(self) -> None:
         """Lock the buttons."""
-        self._test_controller_open()
         command = f'{self.unit}$$L'
-        await self.hw._write_and_read(command)
+        await self._write_and_read(command)
 
     async def unlock(self) -> None:
         """Unlock the buttons."""
-        self._test_controller_open()
         command = f'{self.unit}$$U'
-        await self.hw._write_and_read(command)
+        await self._write_and_read(command)
 
     async def is_locked(self) -> bool:
         """Return whether the buttons are locked."""
@@ -245,41 +245,35 @@ class FlowMeter:
 
     async def tare_pressure(self) -> None:
         """Tare the pressure."""
-        self._test_controller_open()
-
         command = f'{self.unit}$$PC'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
 
         if line == '?':
             raise OSError("Unable to tare pressure.")
 
     async def tare_volumetric(self) -> None:
         """Tare volumetric flow."""
-        self._test_controller_open()
         command = f'{self.unit}$$V'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
 
         if line == '?':
             raise OSError("Unable to tare flow.")
 
     async def reset_totalizer(self) -> None:
         """Reset the totalizer."""
-        self._test_controller_open()
         command = f'{self.unit}T'
-        await self.hw._write_and_read(command)
+        await self._write_and_read(command)
 
     async def get_firmware(self) -> str:
         """Get the device firmware version."""
         if self.firmware is None:
-            self._test_controller_open()
             command = f'{self.unit}VE'
-            self.firmware = await self.hw._write_and_read(command)
+            self.firmware = await self._write_and_read(command)
         return self.firmware
 
     async def flush(self) -> None:
         """Read all available information. Use to clear queue."""
         self._test_controller_open()
-
         await self.hw._clear()
 
     async def close(self) -> None:
@@ -319,11 +313,20 @@ class FlowController(FlowMeter):
             unit: The Alicat-specified unit ID, A-Z. Default 'A'.
         """
         FlowMeter.__init__(self, address, unit)
-        # try:
-        #     self.control_point = self._get_control_point()
-        # except Exception:
-        #     self.control_point = None
         self.control_point = None
+        async def _init_control_point():
+            self.control_point = await self._get_control_point()
+        self._init_task = asyncio.create_task(_init_control_point())
+
+    async def _write_and_read(self, command):
+        """Wrap the communicator request.
+
+        (1) Ensure _init_task is called once before the first request
+        (2) Call _test_controller_open() before any request
+        """
+        await self._init_task
+        self._test_controller_open()
+        return await self.hw._write_and_read(command)
 
     async def get(self) -> dict:
         """Get the current state of the flow controller.
@@ -340,7 +343,6 @@ class FlowController(FlowMeter):
 
         Returns:
             The state of the flow controller, as a dictionary.
-
         """
         state = await super().get()
         if state is None:
@@ -378,15 +380,13 @@ class FlowController(FlowMeter):
         For a dual valve flow controller, hold the valve at the present value.
         For a dual valve pressure controller, close both valves.
         """
-        self._test_controller_open()
         command = f'{self.unit}$$H'
-        await self.hw._write_and_read(command)
+        await self._write_and_read(command)
 
     async def cancel_hold(self) -> None:
         """Cancel valve hold."""
-        self._test_controller_open()
         command = f'{self.unit}$$C'
-        await self.hw._write_and_read(command)
+        await self._write_and_read(command)
 
     async def get_pid(self) -> dict:
         """Read the current PID values on the controller.
@@ -394,19 +394,17 @@ class FlowController(FlowMeter):
         Values include the loop type, P value, D value, and I value.
         Values returned as a dictionary.
         """
-        self._test_controller_open()
-
         self.pid_keys = ['loop_type', 'P', 'D', 'I']
 
         command = f'{self.unit}$$r85'
-        read_loop_type = await self.hw._write_and_read(command)
+        read_loop_type = await self._write_and_read(command)
         spl = read_loop_type.split()
 
         loopnum = int(spl[3])
         loop_type = ['PD/PDF', 'PD/PDF', 'PD2I'][loopnum]
         pid_values = [loop_type]
         for register in range(21, 24):
-            value = await self.hw._write_and_read(f'{self.unit}$$r{register}')
+            value = await self._write_and_read(f'{self.unit}$$r{register}')
             value_spl = value.split()
             pid_values.append(value_spl[3])
 
@@ -424,23 +422,22 @@ class FlowController(FlowMeter):
 
         This communication works by writing Alicat registers directly.
         """
-        self._test_controller_open()
         if loop_type is not None:
             options = ['PD/PDF', 'PD2I']
             if loop_type not in options:
                 raise ValueError(f'Loop type must be {options[0]} or {options[1]}.')
             loop_num=options.index(loop_type) + 1
             command = f'{self.unit}$$w85={loop_num}'
-            await self.hw._write_and_read(command)
+            await self._write_and_read(command)
         if p is not None:
             command = f'{self.unit}$$w21={p}'
-            await self.hw._write_and_read(command)
+            await self._write_and_read(command)
         if i is not None:
             command = f'{self.unit}$$w23={i}'
-            await self.hw._write_and_read(command)
+            await self._write_and_read(command)
         if d is not None:
             command = f'{self.unit}$$w22={d}'
-            await self.hw._write_and_read(command)
+            await self._write_and_read(command)
 
     async def _set_setpoint(self, setpoint) -> None:
         """Set the target setpoint.
@@ -448,10 +445,8 @@ class FlowController(FlowMeter):
         Called by `set_flow_rate` and `set_pressure`, which both use the same
         command once the appropriate register is set.
         """
-        self._test_controller_open()
-
         command = f'{self.unit}S{setpoint:.2f}'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
         try:
             current = float(line.split()[5])
         except IndexError:
@@ -462,7 +457,7 @@ class FlowController(FlowMeter):
     async def _get_control_point(self):
         """Get the control point, and save to internal variable."""
         command = f'{self.unit}R122'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
         if not line:
             return None
         value = int(line.split('=')[-1])
@@ -481,7 +476,7 @@ class FlowController(FlowMeter):
             raise ValueError("Control point must be 'flow' or 'pressure'.")
         reg = self.registers[point]
         command = f'{self.unit}W122={reg:d}'
-        line = await self.hw._write_and_read(command)
+        line = await self._write_and_read(command)
 
         value = int(line.split('=')[-1])
         if value != reg:
