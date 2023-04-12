@@ -6,7 +6,7 @@ Copyright (C) 2023 NuMat Technologies
 import asyncio
 from typing import Dict, Union
 
-from .util import Client, SerialClient, TcpClient
+from .util import Client, SerialClient, TcpClient, _is_float
 
 
 class FlowMeter:
@@ -95,13 +95,6 @@ class FlowMeter:
             raise OSError(f"The FlowMeter with unit ID {self.unit} and "
                            "port {self.hw.address} is not open")
 
-    def _is_float(self, msg):
-        try:
-            float(msg)
-            return True
-        except ValueError:
-            return False
-
     async def _write_and_read(self, command):
         """Wrap the communicator request, to call _test_controller_open() before any request
         """
@@ -147,7 +140,7 @@ class FlowMeter:
             self.keys.insert(5, 'total flow')
         elif len(values) == 2 and len(self.keys) == 6:
             self.keys.insert(1, 'setpoint')
-        return {k: (float(v) if self._is_float(v) else v)
+        return {k: (float(v) if _is_float(v) else v)
                 for k, v in zip(self.keys, values)}
 
     async def set_gas(self, gas):
