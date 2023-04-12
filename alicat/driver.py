@@ -198,14 +198,14 @@ class FlowMeter:
         if any(gas not in self.gases for gas in gases):
             raise ValueError("Gas not supported!")
 
-        gas_list = ' '.join(
-            [' '.join([str(percent), str(self.gases.index(gas))])
-                for gas, percent in gases.items()])
-        command = ' '.join([self.unit,
-                            'GM',
-                            name,
-                            str(mix_no),
-                            gas_list])
+        gas_list = [f'{percent} {self.gases.index(gas)}' for gas, percent in gases.items()]
+        command = ' '.join([
+            self.unit,
+            'GM',
+            name,
+            str(mix_no),
+            ' '.join(gas_list),
+])
 
         line = await self._write_and_read(command)
 
