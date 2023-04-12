@@ -79,7 +79,7 @@ class Client:
             if self.timeouts == self.max_timeouts:
                 logger.error(f'Reading from {self.address} timed out '
                              f'{self.timeouts} times.')
-                self.close()
+                await self.close()
             return None
 
     @abstractmethod
@@ -121,11 +121,11 @@ class TcpClient(Client):
 
     async def __aexit__(self, *args):
         """Provide async exit to context manager."""
-        self.close()
+        await self.close()
 
     async def _connect(self):
         """Asynchronously open a TCP connection with the server."""
-        self.close()
+        await self.close()
         reader, writer = await asyncio.open_connection(self.address, self.port)
         self.connection = {'reader': reader, 'writer': writer}
         self.open = True
@@ -176,13 +176,13 @@ class TcpClient(Client):
             if self.timeouts == self.max_timeouts:
                 logger.error(f'Reading from {self.address} timed out '
                              f'{self.timeouts} times.')
-                self.close()
+                await self.close()
             return None
 
     async def close(self):
         """Close the TCP connection."""
         if self.open:
-            self.connection['writer'].close()
+            await self.connection['writer'].close()
         self.open = False
 
 
