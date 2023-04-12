@@ -4,49 +4,73 @@ from random import choice, random
 from time import sleep
 from unittest.mock import MagicMock
 
+from .driver import FlowController as RealFlowController
 
-class FlowController(MagicMock):
+
+class AsyncClientMock(MagicMock):
+    """Magic mock that works with async methods."""
+
+    async def __call__(self, *args, **kwargs):
+        """Convert regular mocks into into an async coroutine."""
+        return super().__call__(*args, **kwargs)
+
+class FlowController(RealFlowController):
     """Mocks an Alicat MFC for offline testing."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, address, unit='A', *args, **kwargs):
         """Initialize the device client."""
-        self.controlpoint = choice(['flow', 'pressure'])
-        self.setpoint = 10
-        self.gas = 'N2'
-
-    def get(self):
-        """Get the current state of the flow controller."""
-        sleep(random() * 0.25)
-        return {
-            'setpoint': self.setpoint,
-            'control_point': self.control_point,
-            'gas': self.gas,
-            'mass_flow': self.setpoint * (0.95 + 0.1 * random()),
+        self.hw = AsyncClientMock()
+        self.open = True
+        self.control_point = choice(['flow', 'pressure'])
+        self.state = {
+            'setpoint': 10,
+            'gas': 'N2',
+            'mass_flow': 10 * (0.95 + 0.1 * random()),
             'pressure': random() * 50.0,
             'temperature': random() * 50.0,
             'total_flow': 0.0,
+            'unit': unit,
             'volumetric_flow': 0.0,
         }
+        self.unit = unit
+        self.button_lock = False
+        self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
+                     'setpoint', 'gas']
+        self.firmware = '6v21.0-R22 Nov 30 2016,16:04:20'
 
-    def _set_setpoint(self, setpoint):
-        self.setpoint = setpoint
+    async def get(self):
+        sleep(random() * 0.25)
+        return self.state
 
-    def _set_control_point(self, control_point):
+    async def _set_setpoint(self, setpoint):
+        self.state['setpoint'] = setpoint
+
+    async def _set_control_point(self, control_point):
         self.control_point = control_point
 
-    def _get_control_point(self):
+    async def _get_control_point(self):
         return self.control_point
 
-    def set_flow_rate(self, flowrate):
+    async def set_flow_rate(self, flowrate):
         """Set the target setpoint."""
-        self._set_control_point('flow')
-        self._set_setpoint(flowrate)
+        await self._set_control_point('flow')
+        await self._set_setpoint(flowrate)
 
-    def set_gas(self, gas):
+    async def set_gas(self, gas):
         """Set the gas type."""
-        self.gas = gas
+        if type(gas) is int:
+            gas = self.gases[gas]
+        self.state['gas'] = gas
 
-    def set_pressure(self, pressure):
+    async def set_pressure(self, pressure):
         """Set the target pressure."""
-        self._set_control_point('pressure')
-        self._set_setpoint(pressure)
+        await self._set_control_point('pressure')
+        await self._set_setpoint(pressure)
+
+    async def lock(self):
+        """Lock the buttons."""
+        self.button_lock = True
+
+    async def unlock(self):
+        """Unlock the buttons."""
+        self.button_lock = False

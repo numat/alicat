@@ -1,7 +1,7 @@
 """Install parameters for CLI and python import."""
 from setuptools import setup
 
-with open('README.md', 'r') as in_file:
+with open('README.md') as in_file:
     long_description = in_file.read()
 
 setup(
@@ -15,8 +15,19 @@ setup(
     author_email="pat@numat-tech.com",
     packages=["alicat"],
     install_requires=["pyserial"],
+    extras_require={
+            'test': [
+                'pytest>=6,<8',
+                'pytest-cov>=4,<5',
+                'pytest-asyncio==0.*',
+                'pytest-xdist==3.*',
+                'ruff==0.0.261',
+                'mypy==1.0.1',
+                'types-pyserial',
+            ],
+        },
     entry_points={
-        "console_scripts": [("alicat = alicat:run")]
+        "console_scripts": [("alicat = alicat:command_line")]
     },
     license="GPLv2",
     classifiers=[
@@ -25,10 +36,10 @@ setup(
         "Natural Language :: English",
         "Programming Language :: Python",
         "Programming Language :: Python :: 3",
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
         "Topic :: Scientific/Engineering :: Human Machine Interfaces",
     ]
 )
