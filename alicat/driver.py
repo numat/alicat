@@ -317,7 +317,8 @@ class FlowController(FlowMeter):
         (1) Ensure _init_task is called once before the first request
         (2) Call _test_controller_open() before any request
         """
-        await self._init_task
+        if 'R122' not in command:
+            await self._init_task
         self._test_controller_open()
         return await self.hw._write_and_read(command)
 
