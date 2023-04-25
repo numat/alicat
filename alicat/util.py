@@ -85,11 +85,11 @@ class Client:
             return None
 
     @abstractmethod
-    def _handle_connection(self):
+    async def _handle_connection(self) -> None:
         pass
 
     @abstractmethod
-    def close(self):
+    async def close(self) -> None:
         """Close the connection."""
         pass
 
@@ -212,7 +212,7 @@ class SerialClient(Client):
         """Write a message to the device."""
         self.ser.write(message.encode() + self.eol)
 
-    def close(self):
+    async def close(self) -> None:
         """Release resources."""
         self.ser.close()
 
