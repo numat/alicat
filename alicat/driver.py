@@ -4,7 +4,7 @@ Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
 import asyncio
-from typing import Dict, Union
+from typing import Any, Dict, Optional, Union
 
 from .util import Client, SerialClient, TcpClient, _is_float
 
@@ -28,7 +28,7 @@ class FlowMeter:
              'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
              'P-5']
 
-    def __init__(self, address='/dev/ttyUSB0', unit='A', **kwargs):
+    def __init__(self, address: str = '/dev/ttyUSB0', unit: str = 'A', **kwargs: Any) -> None:
         """Connect this driver with the appropriate USB / serial port.
 
         Args:
@@ -46,16 +46,16 @@ class FlowMeter:
         self.open = True
         self.firmware: Union[str, None] = None
 
-    async def __aenter__(self, *args):
+    async def __aenter__(self, *args: Any) -> Any:
         """Provide async enter to context manager."""
         return self
 
-    async def __aexit__(self, *args):
+    async def __aexit__(self, *args: Any) -> None:
         """Provide async exit to context manager."""
         return
 
     @classmethod
-    async def is_connected(cls, port, unit='A') -> bool:
+    async def is_connected(cls, port: str, unit: str = 'A') -> bool:
         """Return True if the specified port is connected to this device.
 
         This class can be used to automatically identify ports with connected
@@ -95,9 +95,8 @@ class FlowMeter:
             raise OSError(f"The FlowMeter with unit ID {self.unit} and "
                            "port {self.hw.address} is not open")
 
-    async def _write_and_read(self, command):
-        """Wrap the communicator request, to call _test_controller_open() before any request
-        """
+    async def _write_and_read(self, command: str) -> Optional[str]:
+        """Wrap the communicator request, to call _test_controller_open() before any request."""
         self._test_controller_open()
         return await self.hw._write_and_read(command)
 
@@ -120,6 +119,8 @@ class FlowMeter:
         """
         command = f'{self.unit}'
         line = await self._write_and_read(command)
+        if not line:
+            raise OSError("Could not read values")
         spl = line.split()
         unit, values = spl[0], spl[1:]
 
@@ -143,7 +144,7 @@ class FlowMeter:
         return {k: (float(v) if _is_float(v) else v)
                 for k, v in zip(self.keys, values)}
 
-    async def set_gas(self, gas):
+    async def set_gas(self, gas: Union[str, int]) -> None:
         """Set the gas type.
 
         Args:
@@ -155,8 +156,6 @@ class FlowMeter:
 
                 Gas mixes may only be called by their mix number.
         """
-        self._test_controller_open()
-
         if isinstance(gas, str):
             if gas not in self.gases:
                 raise ValueError(f"{gas} not supported!")
@@ -166,12 +165,14 @@ class FlowMeter:
         command = f'{self.unit}$$W46={gas_number}'
         await self._write_and_read(command)
         reg46 = await self._write_and_read(f'{self.unit}$$R46')
+        if not reg46:
+            raise OSError("Cannot set gas.")
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if gas_number != reg46_gasbit:
             raise OSError("Cannot set gas.")
 
-    async def create_mix(self, mix_no, name, gases) -> None:
+    async def create_mix(self, mix_no: int, name: str, gases: dict) -> None:
         """Create a gas mix.
 
         Gas mixes are made using COMPOSER software.
@@ -213,7 +214,7 @@ class FlowMeter:
         if line == '?':
             raise OSError("Unable to create mix.")
 
-    async def delete_mix(self, mix_no) -> None:
+    async def delete_mix(self, mix_no: int) -> None:
         """Delete a gas mix."""
         command = f'{self.unit}GD{mix_no}'
         line = await self._write_and_read(command)
@@ -262,6 +263,8 @@ class FlowMeter:
         if self.firmware is None:
             command = f'{self.unit}VE'
             self.firmware = await self._write_and_read(command)
+        if not self.firmware:
+            raise OSError("Unable to get firmware.")
         return self.firmware
 
     async def flush(self) -> None:
@@ -298,7 +301,7 @@ class FlowController(FlowMeter):
                  'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
                  'diff pressure': 0b00100111}
 
-    def __init__(self, address='/dev/ttyUSB0', unit='A'):
+    def __init__(self, address: str='/dev/ttyUSB0', unit: str='A') -> None:
         """Connect this driver with the appropriate USB / serial port.
 
         Args:
@@ -307,11 +310,11 @@ class FlowController(FlowMeter):
         """
         FlowMeter.__init__(self, address, unit)
         self.control_point = None
-        async def _init_control_point():
+        async def _init_control_point() -> None:
             self.control_point = await self._get_control_point()
         self._init_task = asyncio.create_task(_init_control_point())
 
-    async def _write_and_read(self, command):
+    async def _write_and_read(self, command: str) -> Optional[str]:
         """Wrap the communicator request.
 
         (1) Ensure _init_task is called once before the first request
@@ -344,7 +347,7 @@ class FlowController(FlowMeter):
         state['control_point'] = self.control_point
         return state
 
-    async def set_flow_rate(self, flowrate) -> None:
+    async def set_flow_rate(self, flowrate: float) -> None:
         """Set the target flow rate.
 
         Args:
@@ -355,7 +358,7 @@ class FlowController(FlowMeter):
             await self._set_control_point('mass flow')
         await self._set_setpoint(flowrate)
 
-    async def set_pressure(self, pressure) -> None:
+    async def set_pressure(self, pressure: float) -> None:
         """Set the target pressure.
 
         Args:
@@ -392,6 +395,8 @@ class FlowController(FlowMeter):
 
         command = f'{self.unit}$$r85'
         read_loop_type = await self._write_and_read(command)
+        if not read_loop_type:
+            raise OSError("Could not get PID values.")
         spl = read_loop_type.split()
 
         loopnum = int(spl[3])
@@ -399,13 +404,18 @@ class FlowController(FlowMeter):
         pid_values = [loop_type]
         for register in range(21, 24):
             value = await self._write_and_read(f'{self.unit}$$r{register}')
+            if not value:
+                raise OSError(f"Could not read register {register}")
             value_spl = value.split()
             pid_values.append(value_spl[3])
 
         return {k: (v if k == self.pid_keys[-1] else str(v))
                 for k, v in zip(self.pid_keys, pid_values)}
 
-    async def set_pid(self, p=None, i=None, d=None, loop_type=None) -> None:
+    async def set_pid(self, p: Optional[int]=None,
+                            i: Optional[int]=None,
+                            d: Optional[int]=None,
+                            loop_type: Optional[str]=None) -> None:
         """Set specified PID parameters.
 
         Args:
@@ -433,7 +443,7 @@ class FlowController(FlowMeter):
             command = f'{self.unit}$$w22={d}'
             await self._write_and_read(command)
 
-    async def _set_setpoint(self, setpoint) -> None:
+    async def _set_setpoint(self, setpoint: float) -> None:
         """Set the target setpoint.
 
         Called by `set_flow_rate` and `set_pressure`, which both use the same
@@ -441,6 +451,8 @@ class FlowController(FlowMeter):
         """
         command = f'{self.unit}S{setpoint:.2f}'
         line = await self._write_and_read(command)
+        if not line:
+            raise OSError("Could not set setpoint.")
         try:
             current = float(line.split()[5])
         except IndexError:
@@ -448,19 +460,21 @@ class FlowController(FlowMeter):
         if current is not None and abs(current - setpoint) > 0.01:
             raise OSError("Could not set setpoint.")
 
-    async def _get_control_point(self):
+    async def _get_control_point(self) -> str:
         """Get the control point, and save to internal variable."""
         command = f'{self.unit}R122'
         line = await self._write_and_read(command)
         if not line:
-            return None
+            raise OSError("Could not read control point.")
         value = int(line.split('=')[-1])
         try:
-            return next(p for p, r in self.registers.items() if value == r)
+            cp = next(p for p, r in self.registers.items() if value == r)
+            self.control_point = cp
+            return cp
         except StopIteration:
             raise ValueError(f"Unexpected register value: {value:d}")
 
-    async def _set_control_point(self, point) -> None:
+    async def _set_control_point(self, point: str) -> None:
         """Set whether to control on mass flow or pressure.
 
         Args:
@@ -471,7 +485,8 @@ class FlowController(FlowMeter):
         reg = self.registers[point]
         command = f'{self.unit}W122={reg:d}'
         line = await self._write_and_read(command)
-
+        if not line:
+            raise OSError("Could not set control point.")
         value = int(line.split('=')[-1])
         if value != reg:
             raise OSError("Could not set control point.")

@@ -3,10 +3,12 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
+from typing import Any
+
 from alicat.driver import FlowController, FlowMeter  # noqa
 
 
-def command_line(args=None):
+def command_line(args: Any = None) -> None:
     """CLI interface, accessible when installed through pip."""
     import argparse
     import asyncio
@@ -46,7 +48,7 @@ def command_line(args=None):
     parser.add_argument("--reset-totalizer", "-r", action="store_true",
                         help="Reset current value of totalizer to zero.")
     args = parser.parse_args(args)
-    async def get():
+    async def get() -> None:
         async with FlowController(address=args.address, unit=args.unit) as flow_controller:
             if args.set_gas:
                 await flow_controller.set_gas(args.set_gas)
