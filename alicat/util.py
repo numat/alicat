@@ -117,10 +117,6 @@ class TcpClient(Client):
         await self._handle_connection()
         return self
 
-    def __exit__(self, *args):
-        """Provide exit to context manager."""
-        self.close()
-
     async def __aexit__(self, *args):
         """Provide async exit to context manager."""
         await self.close()
