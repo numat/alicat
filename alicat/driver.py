@@ -165,7 +165,7 @@ class FlowMeter:
             gas_number = gas
         command = f'{self.unit}$$W46={gas_number}'
         await self._write_and_read(command)
-        reg46 = await self._write_and_read('f{self.unit}$$R46')
+        reg46 = await self._write_and_read(f'{self.unit}$$R46')
         reg46_gasbit = int(reg46.split()[-1]) & 0b0000000111111111
 
         if gas_number != reg46_gasbit:
