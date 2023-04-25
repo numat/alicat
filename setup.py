@@ -14,6 +14,7 @@ setup(
     author="Patrick Fuller",
     author_email="pat@numat-tech.com",
     packages=["alicat"],
+    package_data={"alicat": ["py.typed"]},
     install_requires=["pyserial"],
     extras_require={
             'test': [
