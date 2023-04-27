@@ -11,7 +11,7 @@ from .driver import FlowController as RealFlowController
 class AsyncClientMock(MagicMock):
     """Magic mock that works with async methods."""
 
-    async def __call__(self, *args, **kwargs): # type: ignore [no-untyped-def]
+    async def __call__(self, *args, **kwargs):  # type: ignore [no-untyped-def]
         """Convert regular mocks into into an async coroutine."""
         return super().__call__(*args, **kwargs)
 
