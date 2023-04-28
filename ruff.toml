@@ -19,7 +19,7 @@ select = [
     "W",   # pycodestyle warnings
     "YTT", # flake8-2020
     # "ARG", # flake8-unused args
-    # "B"    # bandit
+    "B"    # bandit
 ]
 target-version = "py38"
 [pydocstyle]

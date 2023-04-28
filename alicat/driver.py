@@ -280,7 +280,7 @@ class FlowMeter:
         """
         if not self.open:
             return
-        self.hw.close
+        await self.hw.close()
         self.open = False
 
 
@@ -472,7 +472,7 @@ class FlowController(FlowMeter):
             self.control_point = cp
             return cp
         except StopIteration:
-            raise ValueError(f"Unexpected register value: {value:d}")
+            raise ValueError(f"Unexpected register value: {value:d}") from None
 
     async def _set_control_point(self, point: str) -> None:
         """Set whether to control on mass flow or pressure.
