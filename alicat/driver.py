@@ -301,14 +301,14 @@ class FlowController(FlowMeter):
                  'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
                  'diff pressure': 0b00100111}
 
-    def __init__(self, address: str='/dev/ttyUSB0', unit: str='A') -> None:
+    def __init__(self, address: str='/dev/ttyUSB0', unit: str='A', **kwargs: Any) -> None:
         """Connect this driver with the appropriate USB / serial port.
 
         Args:
             address: The serial port or TCP address:port. Default '/dev/ttyUSB0'.
             unit: The Alicat-specified unit ID, A-Z. Default 'A'.
         """
-        FlowMeter.__init__(self, address, unit)
+        FlowMeter.__init__(self, address, unit, **kwargs)
         self.control_point = None
         async def _init_control_point() -> None:
             self.control_point = await self._get_control_point()
