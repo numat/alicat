@@ -46,7 +46,7 @@ class FlowMeter:
         self.open = True
         self.firmware: Union[str, None] = None
 
-    async def __aenter__(self, *args: Any) -> Any:
+    async def __aenter__(self, *args: Any) -> 'FlowMeter':
         """Provide async enter to context manager."""
         return self
 
@@ -313,6 +313,10 @@ class FlowController(FlowMeter):
         async def _init_control_point() -> None:
             self.control_point = await self._get_control_point()
         self._init_task = asyncio.create_task(_init_control_point())
+
+    async def __aenter__(self, *args: Any) -> 'FlowController':
+        """Provide async enter to context manager."""
+        return self
 
     async def _write_and_read(self, command: str) -> Optional[str]:
         """Wrap the communicator request.
