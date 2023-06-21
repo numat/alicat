@@ -4,7 +4,7 @@ Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
 import asyncio
-from typing import Any, Dict, Optional, Union
+from typing import Any, ClassVar, Dict, Optional, Union
 
 from .util import Client, SerialClient, TcpClient, _is_float
 
@@ -21,12 +21,12 @@ class FlowMeter:
 
     # A dictionary that maps port names to a tuple of connection
     # objects and the refcounts
-    open_ports: Dict[int, tuple] = {}
-    gases = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
-             'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
-             'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
-             'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
-             'P-5']
+    open_ports: ClassVar[Dict[int, tuple]] = {}
+    gases: ClassVar[list] = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
+                             'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
+                             'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
+                             'C-8', 'C-2', 'C-75', 'A-75', 'A-25', 'A1025', 'Star29',
+                             'P-5']
 
     def __init__(self, address: str = '/dev/ttyUSB0', unit: str = 'A', **kwargs: Any) -> None:
         """Connect this driver with the appropriate USB / serial port.
@@ -297,9 +297,9 @@ class FlowController(FlowMeter):
     that the "Input" option is set to "Serial".
     """
 
-    registers = {'mass flow': 0b00100101, 'vol flow': 0b00100100,
-                 'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
-                 'diff pressure': 0b00100111}
+    registers: ClassVar[Dict] = {'mass flow': 0b00100101, 'vol flow': 0b00100100,
+                                 'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
+                                 'diff pressure': 0b00100111}
 
     def __init__(self, address: str='/dev/ttyUSB0', unit: str='A', **kwargs: Any) -> None:
         """Connect this driver with the appropriate USB / serial port.
