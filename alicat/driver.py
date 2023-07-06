@@ -52,6 +52,7 @@ class FlowMeter:
 
     async def __aexit__(self, *args: Any) -> None:
         """Provide async exit to context manager."""
+        await self.close()
         return
 
     @classmethod
