@@ -195,7 +195,7 @@ class SerialClient(Client):
         """Initialize serial port."""
         super().__init__(timeout)
         self.address = address
-        assert type(self.address) == str
+        assert isinstance(self.address, str)
         self.serial_details = {'baudrate': baudrate,
                                'bytesize': bytesize,
                                'stopbits': stopbits,
