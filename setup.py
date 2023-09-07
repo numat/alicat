@@ -13,6 +13,8 @@ setup(
     url="https://github.com/numat/alicat/",
     author="Patrick Fuller",
     author_email="pat@numat-tech.com",
+    maintainer="Alex Ruddick",
+    maintainer_email="alex@numat-tech.com",
     packages=["alicat"],
     package_data={"alicat": ["py.typed"]},
     install_requires=["pyserial"],
