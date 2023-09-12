@@ -18,7 +18,10 @@
     },
     {
       "matchPackagePatterns": ["ruff"],
-      "groupName": "ruff"
+      "groupName": "ruff",
+      "schedule": [
+        "on the first day of the month"
+      ]
     }
   ]
 }
