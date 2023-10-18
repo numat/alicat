@@ -25,7 +25,7 @@ setup(
                 'pytest-asyncio==0.*',
                 'pytest-xdist==3.*',
                 'ruff==0.0.291',
-                'mypy==1.6.0',
+                'mypy==1.6.1',
                 'types-pyserial',
             ],
         },
