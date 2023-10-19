@@ -139,7 +139,7 @@ class TcpClient(Client):
         """Read until a line terminator."""
         await self._handle_connection()
         response = await self.connection['reader'].readuntil(self.eol)
-        return response.decode().strip()
+        return response.decode().strip().replace('\x00', '')
 
     async def _write(self, command: str) -> None:
         """Write a command and do not expect a response.
@@ -209,7 +209,7 @@ class SerialClient(Client):
 
     async def _readline(self) -> str:
         """Read until a LF terminator."""
-        return self.ser.readline().strip().decode()
+        return self.ser.readline().strip().decode().replace('\x00', '')
 
     async def _write(self, message: str) -> None:
         """Write a message to the device."""
