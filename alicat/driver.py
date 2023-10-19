@@ -3,8 +3,10 @@
 Distributed under the GNU General Public License v2
 Copyright (C) 2023 NuMat Technologies
 """
+from __future__ import annotations
+
 import asyncio
-from typing import Any, ClassVar, Dict, Optional, Union
+from typing import Any, ClassVar
 
 from .util import Client, SerialClient, TcpClient, _is_float
 
@@ -21,7 +23,7 @@ class FlowMeter:
 
     # A dictionary that maps port names to a tuple of connection
     # objects and the refcounts
-    open_ports: ClassVar[Dict[int, tuple]] = {}
+    open_ports: ClassVar[dict[int, tuple]] = {}
     gases: ClassVar[list] = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
                              'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
                              'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
@@ -44,9 +46,9 @@ class FlowMeter:
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
         self.open = True
-        self.firmware: Union[str, None] = None
+        self.firmware: str | None = None
 
-    async def __aenter__(self, *args: Any) -> 'FlowMeter':
+    async def __aenter__(self, *args: Any) -> FlowMeter:
         """Provide async enter to context manager."""
         return self
 
@@ -96,7 +98,7 @@ class FlowMeter:
             raise OSError(f"The FlowMeter with unit ID {self.unit} and "
                            "port {self.hw.address} is not open")
 
-    async def _write_and_read(self, command: str) -> Optional[str]:
+    async def _write_and_read(self, command: str) -> str | None:
         """Wrap the communicator request, to call _test_controller_open() before any request."""
         self._test_controller_open()
         return await self.hw._write_and_read(command)
@@ -145,7 +147,7 @@ class FlowMeter:
         return {k: (float(v) if _is_float(v) else v)
                 for k, v in zip(self.keys, values)}
 
-    async def set_gas(self, gas: Union[str, int]) -> None:
+    async def set_gas(self, gas: str | int) -> None:
         """Set the gas type.
 
         Args:
@@ -298,7 +300,7 @@ class FlowController(FlowMeter):
     that the "Input" option is set to "Serial".
     """
 
-    registers: ClassVar[Dict] = {'mass flow': 0b00100101, 'vol flow': 0b00100100,
+    registers: ClassVar[dict] = {'mass flow': 0b00100101, 'vol flow': 0b00100100,
                                  'abs pressure': 0b00100010, 'gauge pressure': 0b00100110,
                                  'diff pressure': 0b00100111}
 
@@ -315,11 +317,11 @@ class FlowController(FlowMeter):
             self.control_point = await self._get_control_point()
         self._init_task = asyncio.create_task(_init_control_point())
 
-    async def __aenter__(self, *args: Any) -> 'FlowController':
+    async def __aenter__(self, *args: Any) -> FlowController:
         """Provide async enter to context manager."""
         return self
 
-    async def _write_and_read(self, command: str) -> Optional[str]:
+    async def _write_and_read(self, command: str) -> str | None:
         """Wrap the communicator request.
 
         (1) Ensure _init_task is called once before the first request
@@ -417,10 +419,10 @@ class FlowController(FlowMeter):
         return {k: (v if k == self.pid_keys[-1] else str(v))
                 for k, v in zip(self.pid_keys, pid_values)}
 
-    async def set_pid(self, p: Optional[int]=None,
-                            i: Optional[int]=None,
-                            d: Optional[int]=None,
-                            loop_type: Optional[str]=None) -> None:
+    async def set_pid(self, p: int | None=None,
+                            i: int | None=None,
+                            d: int | None=None,
+                            loop_type: str | None=None) -> None:
         """Set specified PID parameters.
 
         Args:
