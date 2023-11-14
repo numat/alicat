@@ -129,7 +129,7 @@ class FlowMeter:
 
         # Mass/volume over range error.
         # Explicitly silenced because I find it redundant.
-        while values[-1].upper() in ['MOV', 'VOV', 'POV']:
+        while values[-1].upper() in ['MOV', 'VOV', 'POV', 'TOV']:
             del values[-1]
         if unit != self.unit:
             raise ValueError("Flow controller unit ID mismatch.")
