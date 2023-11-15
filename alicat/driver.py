@@ -127,9 +127,9 @@ class FlowMeter:
         spl = line.split()
         unit, values = spl[0], spl[1:]
 
-        # Mass/volume over range error.
+        # Over range errors for mass, volume, pressure, and temperature
         # Explicitly silenced because I find it redundant.
-        while values[-1].upper() in ['MOV', 'VOV', 'POV']:
+        while values[-1].upper() in ['MOV', 'VOV', 'POV', 'TOV']:
             del values[-1]
         if unit != self.unit:
             raise ValueError("Flow controller unit ID mismatch.")
