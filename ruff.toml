@@ -1,12 +1,13 @@
+exclude = ["venv*"]
 line-length = 120
-ignore = [
+target-version = "py38"
+lint.ignore = [
     "PLR2004",
     "D104",
     "D107",
     "C901",
 ]
-exclude = ["venv*"]
-select = [
+lint.select = [
     "C",   # complexity
     "D",   # docstrings
     "E",   # pycodestyle errors
@@ -21,6 +22,5 @@ select = [
     # "ARG", # flake8-unused args
     "B"    # bandit
 ]
-target-version = "py38"
-[pydocstyle]
+[lint.pydocstyle]
 convention = "pep257"
