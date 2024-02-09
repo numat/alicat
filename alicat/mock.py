@@ -38,7 +38,7 @@ class FlowController(RealFlowController):
         self.button_lock: bool = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
                      'setpoint', 'gas']
-        self.firmware: str = '6v21.0-R22 Nov 30 2016,16:04:20'
+        self.firmware = '6v21.0-R22 Nov 30 2016,16:04:20'
 
     async def get(self) -> Dict[str, Union[str, float]]:
         """Return the full state."""
@@ -49,9 +49,9 @@ class FlowController(RealFlowController):
         """Set the target setpoint."""
         self.state['setpoint'] = setpoint
 
-    async def _set_control_point(self, control_point: str) -> None:
+    async def _set_control_point(self, point: str) -> None:
         """Set the control point, either 'flow' or 'pressure'."""
-        self.control_point = control_point
+        self.control_point = point
 
     async def _get_control_point(self) -> str:
         """Return the control point, either 'flow' or 'pressure'."""
