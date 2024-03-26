@@ -181,7 +181,8 @@ class TcpClient(Client):
     async def close(self) -> None:
         """Close the TCP connection."""
         if self.open:
-            await self.connection['writer'].close()
+            self.connection['writer'].close()
+            await self.connection['writer'].wait_closed()
         self.open = False
 
 
