@@ -377,6 +377,43 @@ class FlowController(FlowMeter):
             await self._set_control_point('abs pressure')
         await self._set_setpoint(pressure)
 
+    async def get_totbatch(self, which: int = 1) -> str:
+        """Get the totalizer batch volume.
+        
+        Args:
+            which: Which of the two totalizer batches to query. Default
+             is 1, some devices have 2
+
+        
+        Returns:
+            line: Current value of totalizer batch
+        """
+        command = f'{self.unit} TB {which}'
+        line = await self._write_and_read(command)
+
+        if line == '?':
+            raise OSError("Unable to read totalizer batch volume.")
+
+        else:
+            line = line.split(" ")
+            return f'{line[2]} {line[4]}' ## returns 'batch vol' 'units'
+
+
+    async def set_totbatch(self, batchVolume: float, which: int = 1) -> None:
+        """Set the totalizer batch volume.
+        
+        Args:
+            which: Which of the two totalizer batches to set. Default
+             is 1, some devices have 2
+            batchVolume: Target batch volume, in same units as units 
+                on device
+        """
+        command = f'{self.unit} TB {which} {batchVolume}'
+        line = await self._write_and_read(command)
+
+        if line == '?':
+            raise OSError("Unable to set totalizer batch volume. Check if volume is out of range for device.")
+
     async def hold(self) -> None:
         """Override command to issue a valve hold.
 
