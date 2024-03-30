@@ -33,7 +33,7 @@ jobs:
         python -m pip install '.[test]'
     - name: Lint with ruff
       run: |
-        ruff .
+        ruff check .
     - name: Check types with mypy
       run: |
          mypy alicat
