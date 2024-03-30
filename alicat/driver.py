@@ -377,38 +377,35 @@ class FlowController(FlowMeter):
             await self._set_control_point('abs pressure')
         await self._set_setpoint(pressure)
 
-    async def get_totbatch(self, which: int = 1) -> str:
+    async def get_totalizer_batch(self, batch: int = 1) -> str:
         """Get the totalizer batch volume.
-        
-        Args:
-            which: Which of the two totalizer batches to query. Default
-             is 1, some devices have 2
 
-        
+        Args:
+            batch: Which of the two totalizer batches to query.
+                Default is 1; some devices have 2
+
         Returns:
             line: Current value of totalizer batch
         """
-        command = f'{self.unit} TB {which}'
+        command = f'{self.unit} TB {batch}'
         line = await self._write_and_read(command)
 
         if line == '?':
             raise OSError("Unable to read totalizer batch volume.")
-
         else:
-            line = line.split(" ")
-            return f'{line[2]} {line[4]}' ## returns 'batch vol' 'units'
+            values = line.split(" ")  # type: ignore[union-attr]
+            return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
 
-
-    async def set_totbatch(self, batchVolume: float, which: int = 1) -> None:
+    async def set_totalizer_batch(self, batch_volume: float, batch: int = 1) -> None:
         """Set the totalizer batch volume.
-        
+
         Args:
-            which: Which of the two totalizer batches to set. Default
-             is 1, some devices have 2
-            batchVolume: Target batch volume, in same units as units 
+            batch: Which of the two totalizer batches to set.
+                Default is 1; some devices have 2
+            batch_volume: Target batch volume, in same units as units
                 on device
         """
-        command = f'{self.unit} TB {which} {batchVolume}'
+        command = f'{self.unit} TB {batch} {batch_volume}'
         line = await self._write_and_read(command)
 
         if line == '?':
