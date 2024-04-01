@@ -387,7 +387,7 @@ class FlowController(FlowMeter):
         Returns:
             line: Current value of totalizer batch
         """
-        command = f'{self.unit} TB {batch}'
+        command = f'{self.unit}$$TB {batch}'
         line = await self._write_and_read(command)
 
         if line == '?':
@@ -396,7 +396,7 @@ class FlowController(FlowMeter):
             values = line.split(" ")  # type: ignore[union-attr]
             return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
 
-    async def set_totalizer_batch(self, batch_volume: float, batch: int = 1) -> None:
+    async def set_totalizer_batch(self, batch_volume: float, batch: int = 1, units: str = 'default') -> None:
         """Set the totalizer batch volume.
 
         Args:
@@ -404,8 +404,19 @@ class FlowController(FlowMeter):
                 Default is 1; some devices have 2
             batch_volume: Target batch volume, in same units as units
                 on device
+            units: Units of the volume being provided. Default
+                is 0, so device returns default engineering units. 
         """
-        command = f'{self.unit} TB {batch} {batch_volume}'
+        engineering_units_table = {"default":0, "SμL":2, "SmL":3, "SL":4, \
+                    "Scm3":6, "Sm3":7, "Sin3":8, "Sft3":9, "kSft3":10, "NμL":32, \
+                    "NmL":33, "NL":34, "Ncm3":36, "Nm3":37}
+
+        if units in engineering_units_table:
+            units_no = engineering_units_table[units]
+        else:
+            raise ValueError("Units not in unit list. Please consult Appendix B-3 of the Alicat Serial Primer.")
+
+        command = f'{self.unit}$$TB {batch} {batch_volume} {units_no}'
         line = await self._write_and_read(command)
 
         if line == '?':
