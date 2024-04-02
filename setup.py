@@ -6,7 +6,7 @@ with open('README.md') as in_file:
 
 setup(
     name="alicat",
-    version="0.6.1",
+    version="0.6.2",
     description="Python driver for Alicat mass flow controllers.",
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -14,7 +14,7 @@ setup(
     author="Patrick Fuller",
     author_email="pat@numat-tech.com",
     maintainer="Alex Ruddick",
-    maintainer_email="alex@numat-tech.com",
+    maintainer_email="alex@ruddick.tech",
     packages=["alicat"],
     package_data={"alicat": ["py.typed"]},
     install_requires=["pyserial"],
