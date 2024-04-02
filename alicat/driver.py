@@ -405,7 +405,7 @@ class FlowController(FlowMeter):
             batch_volume: Target batch volume, in same units as units
                 on device
             units: Units of the volume being provided. Default
-                is 0, so device returns default engineering units. 
+                is 0, so device returns default engineering units.
         """
         engineering_units_table = {"default":0, "SμL":2, "SmL":3, "SL":4, \
                     "Scm3":6, "Sm3":7, "Sin3":8, "Sft3":9, "kSft3":10, "NμL":32, \
