@@ -47,7 +47,21 @@ import asyncio
 from alicat import FlowController
 
 async def get():
-    async with FlowController('ip-address:port') as flow_controller:
+    async with FlowController(address = "com_port", unit = "unit_id") as flow_controller:
+        print(await flow_controller.get())
+
+asyncio.run(get())
+```
+
+To communicate with a BASIS device, please use the following syntax.
+
+
+```python
+import asyncio
+from alicat import basis
+
+async def get():
+    async with basis.FlowController(address = "com_port", unit = "unit_id") as flow_controller:
         print(await flow_controller.get())
 
 asyncio.run(get())
