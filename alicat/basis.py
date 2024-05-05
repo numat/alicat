@@ -5,14 +5,14 @@ Copyright (C) 2023 NuMat Technologies
 """
 from __future__ import annotations
 
-import asyncio, nest_asyncio
-nest_asyncio.apply()
+import asyncio
 from typing import Any, ClassVar
 
-from .util import Client, SerialClient, TcpClient, _is_float
-import time
+import nest_asyncio
 
+from .util import Client, SerialClient, _is_float
 
+nest_asyncio.apply()
 class FlowMeter:
     """Python driver for BASIS Flow Meters.
 
@@ -52,7 +52,7 @@ class FlowMeter:
         loop.run_until_complete(tasks)
 
     async def _check_basis(self) -> None:
-        """ Checks if connected device is a BASIS device. If not, raises error"""
+        """Check if connected device is a BASIS device. If not, raise error."""
         check = await self._write_and_read(f'{self.unit} SN')
         if check.split(" ")[-1][0] != 'B':
             raise OSError('This is not a BASIS device. Please use the regular serial driver.')
@@ -288,12 +288,11 @@ class FlowController(FlowMeter):
         if line == '?':
             raise OSError("Unable to set totalizer batch volume. Check if volume is out of range for device.")
 
-    async def hold(self, percentage) -> None:
+    async def hold(self, percentage: float) -> None:
         """Override command to issue a valve hold at a certain percentage of full drive.
 
         Args:
-            percentage : float
-                Percentage of full valve drive
+            percentage : Percentage of full valve drive
         """
         command = f'{self.unit}HPUR {percentage}' ## need the space otherwise won't work
         await self._write_and_read(command)
@@ -316,7 +315,7 @@ class FlowController(FlowMeter):
         if not line:
             raise OSError("Could not get PID values.")
         spl = line.split()
-        return {k: v for k, v in zip(self.pid_keys, spl[1:])}
+        return dict(zip(self.pid_keys, spl[1:]))
 
     async def set_pid(self, p: int | None=None,
                             i: int | None=None,) -> None:
