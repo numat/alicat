@@ -510,7 +510,17 @@ class FlowController(FlowMeter):
         except IndexError:
             current = None
         if current is not None and abs(current - setpoint) > 0.01:
-            raise OSError("Could not set setpoint.")
+            # possibly the setpoint is being ramped
+            command = f'{self.unit}LS'
+            line = await self._write_and_read(command)
+            if not line:
+                raise OSError("Could not set setpoint.")
+            try:
+                commanded = float(line.split()[2])
+            except IndexError:
+                raise OSError("Could not set setpoint.") from None
+            if commanded is not None and abs(commanded - setpoint) > 0.01:
+                raise OSError("Could not set setpoint.")
 
     async def _get_control_point(self) -> str:
         """Get the control point, and save to internal variable."""
