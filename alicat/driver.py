@@ -378,7 +378,7 @@ class FlowController(FlowMeter):
         await self._set_setpoint(pressure)
 
     async def get_totalizer_batch(self, batch: int = 1) -> str:
-        """Get the totalizer batch volume.
+        """Get the totalizer batch volume (firmware 10v00).
 
         Args:
             batch: Which of the two totalizer batches to query.
@@ -397,7 +397,7 @@ class FlowController(FlowMeter):
             return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
 
     async def set_totalizer_batch(self, batch_volume: float, batch: int = 1, units: str = 'default') -> None:
-        """Set the totalizer batch volume.
+        """Set the totalizer batch volume (firmware 10v00).
 
         Args:
             batch: Which of the two totalizer batches to set.
@@ -423,7 +423,7 @@ class FlowController(FlowMeter):
             raise OSError("Unable to set totalizer batch volume. Check if volume is out of range for device.")
 
     async def hold(self) -> None:
-        """Override command to issue a valve hold.
+        """Override command to issue a valve hold (firmware 5v07).
 
         For a single valve controller, hold the valve at the present value.
         For a dual valve flow controller, hold the valve at the present value.
