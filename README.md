@@ -51,6 +51,8 @@ async def get():
         print(await flow_controller.get())
 
 asyncio.run(get())
+#  If there is already an event loop (e.g. Jupyter), replace the above line with:
+#  sawait get()
 ```
 
 If the flow controller is communicating on the specified port, this should
