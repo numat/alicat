@@ -63,3 +63,16 @@ async def test_get_firmware():
     async with FlowController(ADDRESS) as device:
         result = await device.get_firmware()
         assert 'v' in result or 'GP' in result
+
+
+@pytest.mark.parametrize('config', [
+    {'up': True, 'down': False, 'zero': True, 'power': False},
+    {'up': True, 'down': True, 'zero': False, 'power': True},
+    {'up': False, 'down': False, 'zero': False, 'power': False},
+    ])
+async def test_ramp_config(config):
+    """Confirm changing the ramping configuration works."""
+    async with FlowController(ADDRESS) as device:
+        await device.set_ramp_config(config)
+        result = await device.get_ramp_config()
+        assert config == result
