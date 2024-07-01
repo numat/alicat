@@ -553,3 +553,21 @@ class FlowController(FlowMeter):
         if value != reg:
             raise OSError("Could not set control point.")
         self.control_point = point
+
+    async def set_ramp_config(self, config: dict[str, bool]) -> None:
+        """Configure the setpoint ramp settings (firmware 10v05).
+
+        `up`: whether the controller ramps when increasing the setpoint,
+        `down`: whether the controller ramps when decreasing the setpoint,
+                     (this includes setpoints below 0 on bidirectional devices),
+        `zero`: whether the controller ramps when establishing a zero setpoint,
+        `power`: whether the controller ramps when using a power-up setpoint
+        """
+        command = (f"{self.unit}LSRC"
+                  f" {1 if config['up'] else 0}"
+                  f" {1 if config['down'] else 0}"
+                  f" {1 if config['zero'] else 0}"
+                  f" {1 if config['power'] else 0}")
+        line = await self._write_and_read(command)
+        if not line or self.unit not in line:
+            raise OSError("Could not update ramp config.")
