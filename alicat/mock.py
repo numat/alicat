@@ -34,6 +34,7 @@ class FlowController(RealFlowController):
             'unit': unit,
             'volumetric_flow': 0.0,
         }
+        self.ramp_config = { 'up': False, 'down': False, 'zero': False, 'power': False }
         self.unit: str = unit
         self.button_lock: bool = False
         self.keys = ['pressure', 'temperature', 'volumetric_flow', 'mass_flow',
@@ -80,3 +81,11 @@ class FlowController(RealFlowController):
     async def unlock(self) -> None:
         """Unlock the buttons."""
         self.button_lock = False
+
+    async def get_ramp_config(self) -> dict[str, bool]:
+        """Get ramp config."""
+        return self.ramp_config
+
+    async def set_ramp_config(self, config: dict[str, bool]) -> None:
+        """Set ramp config."""
+        self.ramp_config = config

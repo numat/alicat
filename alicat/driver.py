@@ -571,3 +571,27 @@ class FlowController(FlowMeter):
         line = await self._write_and_read(command)
         if not line or self.unit not in line:
             raise OSError("Could not set ramp config.")
+
+
+    async def get_ramp_config(self) -> dict[str, bool]:
+        """Get the setpoint ramp settings (firmware 10v05).
+
+        `up`: whether the controller ramps when increasing the setpoint,
+        `down`: whether the controller ramps when decreasing the setpoint,
+                (this includes setpoints below 0 on bidirectional devices),
+        `zero`: whether the controller ramps when establishing a zero setpoint,
+        `power`: whether the controller ramps when using a power-up setpoint
+        """
+        command = f"{self.unit}LSRC"
+        line = await self._write_and_read(command)
+        if not line or self.unit not in line:
+            raise OSError("Could not read ramp config.")
+        values = line[6:].split(' ')
+        if len(values) != 4:
+            raise OSError("Could not read ramp config.")
+        return {
+            'up': bool(values[0]),
+            'down': bool(values[1]),
+            'zero': bool(values[2]),
+            'power': bool(values[3]),
+        }
