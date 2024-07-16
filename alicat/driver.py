@@ -378,7 +378,7 @@ class FlowController(FlowMeter):
         await self._set_setpoint(pressure)
 
     async def get_totalizer_batch(self, batch: int = 1) -> str:
-        """Get the totalizer batch volume.
+        """Get the totalizer batch volume (firmware 10v00).
 
         Args:
             batch: Which of the two totalizer batches to query.
@@ -397,7 +397,7 @@ class FlowController(FlowMeter):
             return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
 
     async def set_totalizer_batch(self, batch_volume: float, batch: int = 1, units: str = 'default') -> None:
-        """Set the totalizer batch volume.
+        """Set the totalizer batch volume (firmware 10v00).
 
         Args:
             batch: Which of the two totalizer batches to set.
@@ -423,7 +423,7 @@ class FlowController(FlowMeter):
             raise OSError("Unable to set totalizer batch volume. Check if volume is out of range for device.")
 
     async def hold(self) -> None:
-        """Override command to issue a valve hold.
+        """Override command to issue a valve hold (firmware 5v07).
 
         For a single valve controller, hold the valve at the present value.
         For a dual valve flow controller, hold the valve at the present value.
@@ -510,7 +510,17 @@ class FlowController(FlowMeter):
         except IndexError:
             current = None
         if current is not None and abs(current - setpoint) > 0.01:
-            raise OSError("Could not set setpoint.")
+            # possibly the setpoint is being ramped
+            command = f'{self.unit}LS'
+            line = await self._write_and_read(command)
+            if not line:
+                raise OSError("Could not set setpoint.")
+            try:
+                commanded = float(line.split()[2])
+            except IndexError:
+                raise OSError("Could not set setpoint.") from None
+            if commanded is not None and abs(commanded - setpoint) > 0.01:
+                raise OSError("Could not set setpoint.")
 
     async def _get_control_point(self) -> str:
         """Get the control point, and save to internal variable."""
@@ -543,3 +553,45 @@ class FlowController(FlowMeter):
         if value != reg:
             raise OSError("Could not set control point.")
         self.control_point = point
+
+    async def set_ramp_config(self, config: dict[str, bool]) -> None:
+        """Configure the setpoint ramp settings (firmware 10v05).
+
+        `up`: whether the controller ramps when increasing the setpoint,
+        `down`: whether the controller ramps when decreasing the setpoint,
+                (this includes setpoints below 0 on bidirectional devices),
+        `zero`: whether the controller ramps when establishing a zero setpoint,
+        `power`: whether the controller ramps when using a power-up setpoint
+        """
+        command = (f"{self.unit}LSRC"
+                  f" {1 if config['up'] else 0}"
+                  f" {1 if config['down'] else 0}"
+                  f" {1 if config['zero'] else 0}"
+                  f" {1 if config['power'] else 0}")
+        line = await self._write_and_read(command)
+        if not line or self.unit not in line:
+            raise OSError("Could not set ramp config.")
+
+
+    async def get_ramp_config(self) -> dict[str, bool]:
+        """Get the setpoint ramp settings (firmware 10v05).
+
+        `up`: whether the controller ramps when increasing the setpoint,
+        `down`: whether the controller ramps when decreasing the setpoint,
+                (this includes setpoints below 0 on bidirectional devices),
+        `zero`: whether the controller ramps when establishing a zero setpoint,
+        `power`: whether the controller ramps when using a power-up setpoint
+        """
+        command = f"{self.unit}LSRC"
+        line = await self._write_and_read(command)
+        if not line or self.unit not in line:
+            raise OSError("Could not read ramp config.")
+        values = line[2:].split(' ')
+        if len(values) != 4:
+            raise OSError("Could not read ramp config.")
+        return {
+            'up': bool(values[0]),
+            'down': bool(values[1]),
+            'zero': bool(values[2]),
+            'power': bool(values[3]),
+        }
