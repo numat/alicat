@@ -1,8 +1,9 @@
 """Mock for offline testing of `FlowController`s."""
+from __future__ import annotations
 
 from random import choice, random
 from time import sleep
-from typing import Any, Dict, Union
+from typing import Any
 from unittest.mock import MagicMock
 
 from .driver import FlowController as RealFlowController
@@ -24,7 +25,7 @@ class FlowController(RealFlowController):
         self.hw = AsyncClientMock()
         self.open = True
         self.control_point: str = choice(['flow', 'pressure'])
-        self.state: Dict[str, Union[str, float]] = {
+        self.state: dict[str, str | float] = {
             'setpoint': 10,
             'gas': 'N2',
             'mass_flow': 10 * (0.95 + 0.1 * random()),
@@ -41,7 +42,7 @@ class FlowController(RealFlowController):
                      'setpoint', 'gas']
         self.firmware = '6v21.0-R22 Nov 30 2016,16:04:20'
 
-    async def get(self) -> Dict[str, Union[str, float]]:
+    async def get(self) -> dict[str, str | float]:
         """Return the full state."""
         sleep(random() * 0.25)
         return self.state
@@ -63,7 +64,7 @@ class FlowController(RealFlowController):
         await self._set_control_point('flow')
         await self._set_setpoint(flowrate)
 
-    async def set_gas(self, gas: Union[int, str]) -> None:
+    async def set_gas(self, gas: int | str) -> None:
         """Set the gas type."""
         if isinstance(gas, int):
             gas = self.gases[gas]
