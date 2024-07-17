@@ -1,6 +1,7 @@
 """Python driver for Alicat mass flow controllers, using serial communication.
 
 Distributed under the GNU General Public License v2
+Copyright (C) 2024 Alex Ruddick
 Copyright (C) 2023 NuMat Technologies
 """
 from __future__ import annotations
