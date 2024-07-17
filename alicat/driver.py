@@ -590,8 +590,8 @@ class FlowController(FlowMeter):
         if len(values) != 4:
             raise OSError("Could not read ramp config.")
         return {
-            'up': bool(values[0]),
-            'down': bool(values[1]),
-            'zero': bool(values[2]),
-            'power': bool(values[3]),
+            'up': values[0] == '1',
+            'down': values[1] == '1',
+            'zero': values[2] == '1',
+            'power': values[3] == '1',
         }
