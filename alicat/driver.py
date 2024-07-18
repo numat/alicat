@@ -393,9 +393,8 @@ class FlowController(FlowMeter):
 
         if line == '?':
             raise OSError("Unable to read totalizer batch volume.")
-        else:
-            values = line.split(" ")  # type: ignore[union-attr]
-            return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
+        values = line.split(" ")  # type: ignore[union-attr]
+        return f'{values[2]} {values[4]}' # returns 'batch vol' 'units'
 
     async def set_totalizer_batch(self, batch_volume: float, batch: int = 1, units: str = 'default') -> None:
         """Set the totalizer batch volume (firmware 10v00).
