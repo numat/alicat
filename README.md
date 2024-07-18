@@ -2,20 +2,21 @@ alicat
 ======
 
 TCP/Serial driver and command line tool for
-[Alicat mass flow controllers](http://www.alicat.com/products/mass-flow-meters-and-controllers/mass-flow-controllers/).
+[Alicat Laminar DP mass flow controllers](https://www.alicat.com/gas-products/laminar-dp-mass-flow-meters-and-controllers/).
 
 <p align="center">
-  <img src="http://www.alicat.com/wpinstall/wp-content/uploads/2012/01/gas-mass-flow-controller1.jpg" height="400" />
+  <img src="https://www.alicat.com/wp-content/uploads/2024/05/M_MC_Pair.webp" height="400" />
 </p>
 
 *If you are using Analyt-MTC flow controllers, go to [this repository](https://github.com/schlenzmeister/AnalytMTC/wiki) for more info.*
+*This driver does not currently support CODA or BASIS controllers.*
 
 Example Connections
 ===================
 
 | Type | Usage |
 | --- | --- |
-| The standard [DB9 cable](http://www.alicat.com/wpinstall/wp-content/uploads/2013/07/MD8DB9.jpg) connected directly to a computer (unix: `/dev/ttyS0`, windows: `COM1`). | Good with older computers that still have the connector. |
+| The standard [DB9 cable](https://store.alicat.com/collections/communication-cables/products/md8db9-8-pin-mini-din-to-serial-adapter-cable) connected directly to a computer (unix: `/dev/ttyS0`, windows: `COM1`). | Good with older computers that still have the connector. |
 | The cable connected to a computer through a [USB converter](https://www.amazon.com/gp/product/B0007T27H8) (unix: `/dev/ttyUSB0`, windows: `COM1`). | Good for newer computers and maker boards such as Raspberry Pis. |
 | Multiple cables connected to one port via a [splitter](https://www.amazon.com/gp/product/B007F2E188) and Alicat's addressing (`A`-`Z`). | Good when number of ports is limited. |
 | Cables routed through a [TCP device server](https://www.usconverters.com/serial-rs232-ethernet-converter) (`192.168.1.100:23`).
