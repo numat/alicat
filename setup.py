@@ -6,13 +6,13 @@ with open('README.md') as in_file:
 
 setup(
     name="alicat",
-    version="0.6.3",
+    version="0.6.4",
     description="Python driver for Alicat mass flow controllers.",
     long_description=long_description,
     long_description_content_type='text/markdown',
     url="https://github.com/alexrudd2/alicat/",
     author="Patrick Fuller",
-    author_email="pat@numat-tech.com",
+    author_email="patrickfuller@gmail.com",
     maintainer="Alex Ruddick",
     maintainer_email="alex@ruddick.tech",
     packages=["alicat"],
