@@ -1,0 +1,91 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alicat"
+version = "0.6.4"
+description="Python driver for Alicat mass flow controllers."
+dependencies = [
+  "pyserial",
+]
+authors = [
+  {name = "Pat Fuller", email = "patrickfuller@gmail.com" },
+]
+maintainers = [
+  {name = "Alex Ruddick", email = "alex@ruddick.tech" }
+]
+readme = "README.md"
+classifiers = [
+    "License :: OSI Approved :: GNU General Public License v2 (GPLv2)",
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Human Machine Interfaces",
+]
+
+[project.optional-dependencies]
+test = [
+  'mypy==1.11.2',
+  'pytest>=8,<9',
+  'pytest-cov>=5,<6',
+  'pytest-asyncio>=0.23.5',
+  'pytest-xdist>=3,<4',
+  'ruff==0.6.6',
+  'types-pyserial'
+]
+
+[project.scripts]
+alicat = "alicat:command_line"
+
+[project.urls]
+Homepage = "https://github.com/alexrudd2/alicat"
+Issues = "https://github.com/alexrudd2/alicat/issues"
+
+[tool.setuptools]
+packages = ["alicat"]
+
+[tool.ruff]
+extend-exclude = ["venv*"]
+line-length = 120
+target-version = "py38"
+
+[tool.ruff.lint]
+ignore = [
+  "C901",     # complexity
+  "D104",     # Missing docstring in public package
+  "D107",     # Missing docstring in __init__
+]
+
+select = [
+    "B",   # bandit
+    "C",   # complexity
+    "D",   # docstrings
+    "E",   # pycodestyle errors
+    "F",   # pyflakes
+    "I",   # isort
+    "PT",  # flake8-pytest
+    "RUF", # ruff base config
+    "SIM", # flake-simplify
+    "UP",  # pyupgrade
+    "W",   # pycodestyle warnings
+    "YTT", # flake8-2020
+    # "ARG", # flake8-unused args
+]
+
+[tool.ruff.lint.pydocstyle]
+convention = "pep257"
+
+[tool.mypy]
+disallow_untyped_defs = true
+
+[tool.pytest.ini_options]
+addopts = "--cov=alicat"
+asyncio_mode = "auto"
