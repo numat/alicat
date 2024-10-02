@@ -146,8 +146,8 @@ class FlowMeter:
         elif len(values) == 2 and len(self.keys) == 6:
             self.keys.insert(1, 'setpoint')
         return {k: (float(v) if _is_float(v) else v)
-                for k, v in zip(self.keys, values, strict=True)}
-
+                for k, v in zip(self.keys, values, strict=True)}  # type: ignore[call-overload]
+                                                                  # PEP618
     async def set_gas(self, gas: str | int) -> None:
         """Set the gas type.
 
@@ -462,7 +462,8 @@ class FlowController(FlowMeter):
             pid_values.append(value_spl[3])
 
         return {k: (v if k == self.pid_keys[-1] else str(v))
-                for k, v in zip(self.pid_keys, pid_values, strict=True)}
+                for k, v in zip(self.pid_keys, pid_values, strict=True)}  # type: ignore[call-overload]
+                                                                          # PEP618
 
     async def set_pid(self, p: int | None=None,
                             i: int | None=None,
