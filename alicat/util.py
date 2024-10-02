@@ -1,12 +1,15 @@
 """Base functionality for async communication.
 
 Distributed under the GNU General Public License v2
+Copyright (C) 2024 Alex Ruddick
 Copyright (C) 2023 NuMat Technologies
 """
+from __future__ import annotations
+
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Union
+from typing import Any
 
 import serial
 
@@ -31,19 +34,17 @@ class Client(ABC):
     @abstractmethod
     async def _write(self, message: str) -> None:
         """Write a message to the device."""
-        pass
+        ...
 
     @abstractmethod
-    async def _read(self, length: int) -> Optional[str]:
+    async def _read(self, length: int) -> str:
         """Read a fixed number of bytes from the device."""
-        pass
 
     @abstractmethod
-    async def _readline(self) -> Optional[str]:
+    async def _readline(self) -> str:
         """Read until a LF terminator."""
-        pass
 
-    async def _write_and_read(self, command: str) -> Optional[str]:
+    async def _write_and_read(self, command: str) -> str | None:
         """Write a command and read a response.
 
         As industrial devices are commonly unplugged, this has been expanded to
@@ -70,7 +71,7 @@ class Client(ABC):
         except TimeoutError:
             pass
 
-    async def _handle_communication(self, command: str) -> Optional[str]:
+    async def _handle_communication(self, command: str) -> str | None:
         """Manage communication, including timeouts and logging."""
         try:
             await self._write(command)
@@ -162,7 +163,7 @@ class TcpClient(Client):
                 logger.error(f'Connecting to {self.address} timed out.')
             self.reconnecting = True
 
-    async def _handle_communication(self, command: str) -> Optional[str]:
+    async def _handle_communication(self, command: str) -> str | None:
         """Manage communication, including timeouts and logging."""
         try:
             await self._write(command)
@@ -191,7 +192,7 @@ class SerialClient(Client):
 
     def __init__(self, address: str, baudrate: int=19200, timeout: float=.15,
                  bytesize: int = serial.EIGHTBITS,
-                 stopbits: Union[float, int] = serial.STOPBITS_ONE,
+                 stopbits: int = serial.STOPBITS_ONE,
                  parity: str = serial.PARITY_NONE):
         """Initialize serial port."""
         super().__init__(timeout)
