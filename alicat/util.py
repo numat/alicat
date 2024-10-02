@@ -6,7 +6,7 @@ Copyright (C) 2023 NuMat Technologies
 import asyncio
 import logging
 from abc import ABC, abstractmethod
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import serial
 
@@ -23,7 +23,7 @@ class Client(ABC):
         self.timeout = timeout
         self.timeouts = 0
         self.max_timeouts = 10
-        self.connection: Dict[str, Any] = {}
+        self.connection: dict[str, Any] = {}
         self.reconnecting = False
         self.eol = b'\r'
         self.lock = asyncio.Lock()
