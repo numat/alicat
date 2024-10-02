@@ -54,7 +54,7 @@ packages = ["alicat"]
 [tool.ruff]
 extend-exclude = ["venv*"]
 line-length = 120
-target-version = "py39"
+target-version = "py310"
 
 [tool.ruff.lint]
 ignore = [
