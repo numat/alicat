@@ -1,7 +1,7 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "config:base"
+    "config:recommended"
   ],
   "timezone": "America/Chicago",
   "pre-commit": {
@@ -9,18 +9,26 @@
   },
   "packageRules": [
     {
-      "matchManagers": ["github-actions"],
+      "matchManagers": [
+        "github-actions"
+      ],
       "automerge": true
     },
     {
-      "matchPackagePatterns": ["mypy", "pre-commit", "ruff"],
-      "automerge": true
+      "automerge": true,
+      "matchPackageNames": [
+        "/mypy/",
+        "/pre-commit/",
+        "/ruff/"
+      ]
     },
     {
-      "matchPackagePatterns": ["ruff"],
       "groupName": "ruff",
       "schedule": [
         "on the first day of the month"
+      ],
+      "matchPackageNames": [
+        "/ruff/"
       ]
     }
   ]
