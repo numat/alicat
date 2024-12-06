@@ -64,7 +64,7 @@ ignore = [
 ]
 
 select = [
-    "B",   # bandit
+    "B",   # flake8-bugbear
     "C",   # complexity
     "D",   # docstrings
     "E",   # pycodestyle errors
