@@ -22,9 +22,6 @@ class FlowMeter:
     connection using pyserial, or an Ethernet <-> serial converter.
     """
 
-    # A dictionary that maps port names to a tuple of connection
-    # objects and the refcounts
-    open_ports: ClassVar[dict[int, tuple]] = {}
     gases: ClassVar[list] = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
                              'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
                              'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
@@ -350,8 +347,6 @@ class FlowController(FlowMeter):
             The state of the flow controller, as a dictionary.
         """
         state = await super().get()
-        if state is None:
-            return None
         state['control_point'] = self.control_point
         return state
 
