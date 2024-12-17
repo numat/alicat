@@ -23,6 +23,7 @@ class FlowController(RealFlowController):
     def __init__(self, address: str, unit: str = 'A', *args: Any, **kwargs: Any) -> None:
         """Initialize the device client."""
         self.hw = AsyncClientMock()
+        self.hw.address = address
         self.open = True
         self.control_point: str = choice(['flow', 'pressure'])
         self.state: dict[str, str | float] = {

@@ -22,6 +22,8 @@ class FlowMeter:
     connection using pyserial, or an Ethernet <-> serial converter.
     """
 
+    # mapping of port names to a tuple of Client objects and their refcounts
+    open_ports: ClassVar[dict[str, tuple[Client, int]]] = {}
     gases: ClassVar[list] = ['Air', 'Ar', 'CH4', 'CO', 'CO2', 'C2H6', 'H2', 'He',
                              'N2', 'N2O', 'Ne', 'O2', 'C3H8', 'n-C4H10', 'C2H2',
                              'C2H4', 'i-C2H10', 'Kr', 'Xe', 'SF6', 'C-25', 'C-10',
@@ -36,7 +38,14 @@ class FlowMeter:
             unit: The Alicat-specified unit ID, A-Z. Default 'A'.
         """
         if address.startswith('/dev') or address.startswith('COM'):  # serial
-            self.hw: Client = SerialClient(address=address, **kwargs)
+            if address in FlowMeter.open_ports:
+                # Reuse existing connection
+                self.hw, refcount = FlowMeter.open_ports[address]
+                FlowMeter.open_ports[address] = (self.hw, refcount + 1)
+            else:
+                # Open a new connection and store it
+                self.hw: Client = SerialClient(address=address, **kwargs)  # type: ignore[no-redef]
+                FlowMeter.open_ports[address] = (self.hw, 1)
         else:
             self.hw = TcpClient(address=address, **kwargs)
 
@@ -276,12 +285,19 @@ class FlowMeter:
     async def close(self) -> None:
         """Close the flow meter. Call this on program termination.
 
-        Also closes the serial port if no other FlowMeter object has
+        Also close the serial port if no other FlowMeter object has
         a reference to the port.
         """
         if not self.open:
             return
-        await self.hw.close()
+        port = self.hw.address
+        if port in FlowMeter.open_ports:
+            connection, refcount = FlowMeter.open_ports[port]
+            if refcount > 1:
+                FlowMeter.open_ports[port] = (connection, refcount - 1)
+            else:
+                await connection.close()  # Close the port if no other instance uses it
+                del FlowMeter.open_ports[port]
         self.open = False
 
 
