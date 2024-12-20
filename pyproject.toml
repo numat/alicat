@@ -32,7 +32,7 @@ classifiers = [
 
 [project.optional-dependencies]
 test = [
-  'mypy==1.13.0',
+  'mypy==1.14.0',
   'pytest>=8,<9',
   'pytest-cov>=6,<7',
   'pytest-asyncio>=0.23.5',
