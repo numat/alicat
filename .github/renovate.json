@@ -19,7 +19,8 @@
       "matchPackageNames": [
         "/mypy/",
         "/pre-commit/",
-        "/ruff/"
+        "/ruff/",
+        "python-jsonschema/check-jsonschema"
       ]
     },
     {
