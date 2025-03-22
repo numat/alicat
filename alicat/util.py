@@ -12,6 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import serial
+import serial_asyncio_fast  # type: ignore
 
 logger = logging.getLogger('alicat')
 
@@ -198,30 +199,48 @@ class SerialClient(Client):
         super().__init__(timeout)
         self.address = address
         assert isinstance(self.address, str)
-        self.serial_details = {'baudrate': baudrate,
-                               'bytesize': bytesize,
-                               'stopbits': stopbits,
-                               'parity': parity,
-                               'timeout': timeout}
-        self.ser = serial.Serial(self.address, **self.serial_details)  # type: ignore [arg-type]
+        self.baudrate = baudrate
+        self.bytesize = bytesize
+        self.stopbits = stopbits
+        self.parity = parity
+        self.timeout = timeout
+        self.connectTask = asyncio.create_task(self._connect())
+
+
+    async def _connect(self) -> None:
+        self.reader, self.writer = await serial_asyncio_fast.open_serial_connection(
+            url = self.address,
+            baudrate = self.baudrate,
+            bytesize = self.bytesize,
+            stopbits = self.stopbits,
+            parity = self.parity,
+            timeout = self.timeout
+        )
+        self.open = True
 
     async def _read(self, length: int) -> str:
         """Read a fixed number of bytes from the device."""
-        return self.ser.read(length).decode()
+        response = await asyncio.wait_for(self.reader.read(length), self.timeout)
+        return response.decode()
 
     async def _readline(self) -> str:
         """Read until a LF terminator."""
-        return self.ser.readline().strip().decode().replace('\x00', '')
+        response = await asyncio.wait_for(self.reader.readuntil(self.eol), self.timeout)
+        return response.strip().decode().replace('\x00', '')
 
     async def _write(self, message: str) -> None:
         """Write a message to the device."""
-        self.ser.write(message.encode() + self.eol)
+        self.writer.write(message.encode() + self.eol)
 
     async def close(self) -> None:
         """Release resources."""
-        self.ser.close()
+        if self.open:
+            self.writer.close()
+            await self.writer.wait_closed()
+        self.open = False
 
     async def _handle_connection(self) -> None:
+        await self.connectTask
         self.open = True
 
 def _is_float(msg: Any) -> bool:

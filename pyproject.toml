@@ -8,6 +8,7 @@ version = "0.8.0"
 description="Python driver for Alicat mass flow controllers."
 dependencies = [
   "pyserial",
+  "pyserial-asyncio-fast",
 ]
 authors = [
   {name = "Pat Fuller", email = "patrickfuller@gmail.com" },
