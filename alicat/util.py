@@ -20,6 +20,9 @@ logger = logging.getLogger('alicat')
 class Client(ABC):
     """Serial or TCP client."""
 
+    reader: asyncio.StreamReader
+    writer: asyncio.StreamWriter
+
     def __init__(self, timeout: float):
         """Initialize common attributes."""
         self.address = ''
@@ -86,13 +89,15 @@ class Client(ABC):
                 await self.close()
             return None
 
-    @abstractmethod
-    async def _handle_connection(self) -> None:
-        pass
+    async def close(self) -> None:
+        """Release resources."""
+        if self.open:
+            self.writer.close()
+            await self.writer.wait_closed()
+        self.open = False
 
     @abstractmethod
-    async def close(self) -> None:
-        """Close the connection."""
+    async def _handle_connection(self) -> None:
         pass
 
 
@@ -178,13 +183,6 @@ class TcpClient(Client):
                 await self.close()
             return None
 
-    async def close(self) -> None:
-        """Close the TCP connection."""
-        if self.open:
-            self.writer.close()
-            await self.writer.wait_closed()
-        self.open = False
-
 
 class SerialClient(Client):
     """Client using a directly-connected RS232 serial device."""
@@ -223,13 +221,6 @@ class SerialClient(Client):
     async def _write(self, message: str) -> None:
         """Write a message to the device."""
         self.writer.write(message.encode() + self.eol)
-
-    async def close(self) -> None:
-        """Release resources."""
-        if self.open:
-            self.writer.close()
-            await self.writer.wait_closed()
-        self.open = False
 
     async def _handle_connection(self) -> None:
         await self.connectTask
