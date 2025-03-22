@@ -191,18 +191,12 @@ class TcpClient(Client):
 class SerialClient(Client):
     """Client using a directly-connected RS232 serial device."""
 
-    def __init__(self, address: str, baudrate: int=19200, timeout: float=.15,
-                 bytesize: int = serial.EIGHTBITS,
-                 stopbits: int = serial.STOPBITS_ONE,
-                 parity: str = serial.PARITY_NONE):
+    def __init__(self, address: str, baudrate: int=19200, timeout: float=.15):
         """Initialize serial port."""
         super().__init__(timeout)
         self.address = address
         assert isinstance(self.address, str)
         self.baudrate = baudrate
-        self.bytesize = bytesize
-        self.stopbits = stopbits
-        self.parity = parity
         self.timeout = timeout
         self.connectTask = asyncio.create_task(self._connect())
 
@@ -211,9 +205,9 @@ class SerialClient(Client):
         self.reader, self.writer = await serial_asyncio_fast.open_serial_connection(
             url = self.address,
             baudrate = self.baudrate,
-            bytesize = self.bytesize,
-            stopbits = self.stopbits,
-            parity = self.parity,
+            bytesize = serial.EIGHTBITS,
+            stopbits = serial.STOPBITS_ONE,
+            parity = serial.PARITY_NONE,
             timeout = self.timeout
         )
         self.open = True
