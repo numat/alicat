@@ -89,3 +89,4 @@ disallow_untyped_defs = true
 [tool.pytest.ini_options]
 addopts = "--cov=alicat"
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "session"
