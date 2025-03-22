@@ -27,7 +27,6 @@ class Client(ABC):
         self.timeout = timeout
         self.timeouts = 0
         self.max_timeouts = 10
-        self.connection: dict[str, Any] = {}
         self.reconnecting = False
         self.eol = b'\r'
         self.lock = asyncio.Lock()
@@ -127,20 +126,19 @@ class TcpClient(Client):
     async def _connect(self) -> None:
         """Asynchronously open a TCP connection with the server."""
         await self.close()
-        reader, writer = await asyncio.open_connection(self.address, self.port)
-        self.connection = {'reader': reader, 'writer': writer}
+        self.reader, self.writer = await asyncio.open_connection(self.address, self.port)
         self.open = True
 
     async def _read(self, length: int) -> str:
         """Read a fixed number of bytes from the device."""
         await self._handle_connection()
-        response = await self.connection['reader'].read(length)
+        response = await self.reader.read(length)
         return response.decode().strip()
 
     async def _readline(self) -> str:
         """Read until a line terminator."""
         await self._handle_connection()
-        response = await self.connection['reader'].readuntil(self.eol)
+        response = await self.reader.readuntil(self.eol)
         return response.decode().strip().replace('\x00', '')
 
     async def _write(self, message: str) -> None:
@@ -150,7 +148,7 @@ class TcpClient(Client):
         handle recovering from disconnects.
         """
         await self._handle_connection()
-        self.connection['writer'].write(message.encode() + self.eol)
+        self.writer.write(message.encode() + self.eol)
 
     async def _handle_connection(self) -> None:
         """Automatically maintain TCP connection."""
@@ -183,8 +181,8 @@ class TcpClient(Client):
     async def close(self) -> None:
         """Close the TCP connection."""
         if self.open:
-            self.connection['writer'].close()
-            await self.connection['writer'].wait_closed()
+            self.writer.close()
+            await self.writer.wait_closed()
         self.open = False
 
 
