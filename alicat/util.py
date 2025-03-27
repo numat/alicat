@@ -12,7 +12,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 import serial
-import serial_asyncio_fast  # type: ignore
+import serial_asyncio_fast
 
 logger = logging.getLogger('alicat')
 
