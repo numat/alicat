@@ -96,7 +96,7 @@ class FlowMeter:
         """
         if not self.open:
             raise OSError(f"The FlowMeter with unit ID {self.unit} and "
-                           "port {self.hw.address} is not open")
+                          f"port {self.hw.address} is not open")
 
     async def _write_and_read(self, command: str) -> str | None:
         """Wrap the communicator request, to call _test_controller_open() before any request."""
