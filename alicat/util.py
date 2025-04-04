@@ -69,7 +69,7 @@ class Client(ABC):
         """Clear the reader stream when it has been corrupted from multiple connections."""
         logger.warning("Multiple connections detected; clearing reader stream.")
         try:
-            junk = await asyncio.wait_for(self._read(100), timeout=0.5)
+            junk = await asyncio.wait_for(self._read(100), timeout=self.timeout)
             logger.warning(junk)
         except TimeoutError:
             pass
@@ -160,7 +160,7 @@ class TcpClient(Client):
         if self.open:
             return
         try:
-            await asyncio.wait_for(self._connect(), timeout=0.75)
+            await asyncio.wait_for(self._connect(), timeout=self.timeout)
             self.reconnecting = False
         except (asyncio.TimeoutError, OSError):
             if not self.reconnecting:
@@ -172,7 +172,7 @@ class TcpClient(Client):
         try:
             await self._write(command)
             future = self._readline()
-            result = await asyncio.wait_for(future, timeout=0.75)
+            result = await asyncio.wait_for(future, timeout=self.timeout)
             self.timeouts = 0
             return result
         except (asyncio.TimeoutError, TypeError, OSError):
