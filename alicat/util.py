@@ -159,13 +159,14 @@ class TcpClient(Client):
         """Automatically maintain TCP connection."""
         if self.open:
             return
-        try:
-            await asyncio.wait_for(self._connect(), timeout=self.timeout)
-            self.reconnecting = False
-        except (asyncio.TimeoutError, OSError):
-            if not self.reconnecting:
-                logger.error(f'Connecting to {self.address} timed out.')
-            self.reconnecting = True
+        async with self.lock:
+            try:
+                await asyncio.wait_for(self._connect(), timeout=self.timeout)
+                self.reconnecting = False
+            except (asyncio.TimeoutError, OSError):
+                if not self.reconnecting:
+                    logger.error(f'Connecting to {self.address} timed out.')
+                self.reconnecting = True
 
     async def _handle_communication(self, command: str) -> str | None:
         """Manage communication, including timeouts and logging."""
@@ -223,7 +224,8 @@ class SerialClient(Client):
         self.writer.write(message.encode() + self.eol)
 
     async def _handle_connection(self) -> None:
-        await self.connectTask
+        async with self.lock:
+            await self.connectTask
         self.open = True
 
 def _is_float(msg: Any) -> bool:
