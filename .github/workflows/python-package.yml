@@ -40,3 +40,7 @@ jobs:
     - name: Pytest
       run: |
         pytest
+
+permissions:
+  contents: read
+  pull-requests: read
