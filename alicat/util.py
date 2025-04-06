@@ -35,17 +35,16 @@ class Client(ABC):
         self.lock = asyncio.Lock()
 
     @abstractmethod
-    async def _write(self, message: str) -> None:
-        """Write a message to the device."""
-        ...
-
-    @abstractmethod
     async def _read(self, length: int) -> str:
         """Read a fixed number of bytes from the device."""
 
     @abstractmethod
     async def _readline(self) -> str:
         """Read until a LF terminator."""
+
+    async def _write(self, message: str) -> None:
+        """Write a command and do not expect a response."""
+        self.writer.write(message.encode() + self.eol)
 
     async def _write_and_read(self, command: str) -> str | None:
         """Write a command and read a response.
@@ -218,10 +217,6 @@ class SerialClient(Client):
         """Read until a LF terminator."""
         response = await asyncio.wait_for(self.reader.readuntil(self.eol), self.timeout)
         return response.strip().decode().replace('\x00', '')
-
-    async def _write(self, message: str) -> None:
-        """Write a message to the device."""
-        self.writer.write(message.encode() + self.eol)
 
     async def _handle_connection(self) -> None:
         async with self.lock:
