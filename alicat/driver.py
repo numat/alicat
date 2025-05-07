@@ -151,6 +151,9 @@ class FlowMeter:
             self.keys.insert(5, 'total flow')
         elif len(values) == 2 and len(self.keys) == 6:
             self.keys.insert(1, 'setpoint')
+        elif len(values) == 4 and len(self.keys) == 6:  # LCR (liquid)
+            del self.keys[-1]  # gas
+            del self.keys[2]  # volumetric flow
         return {k: (float(v) if _is_float(v) else v)
                 for k, v in zip(self.keys, values)}
     async def set_gas(self, gas: str | int) -> None:
