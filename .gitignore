@@ -6,3 +6,4 @@ dist
 venv
 .vscode
 .coverage
+uv.lock
